@@ -17,7 +17,7 @@ Este é um aplicativo de gerenciamento de tarefas simples com um cronômetro Pom
 
 1.  **Clone o repositório:**
     ```bash
-    git clone <URL_DO_SEU_REPOSITORIO_GITHUB>
+    git clone https://github.com/vieirads/gerenciador-tarefas-app
     cd gerenciador-tarefas-app
     ```
 2.  **Instale as dependências:**
@@ -34,9 +34,9 @@ Este é um aplicativo de gerenciamento de tarefas simples com um cronômetro Pom
     ```
     O aplicativo será aberto no seu navegador em `http://localhost:3000`.
 
-<!-- ## Deploy no Netlify -->
+## Deploy no Netlify
 
-<!-- Este projeto está configurado para deploy fácil no Netlify.
+Este projeto está configurado para deploy fácil no Netlify.
 
 ### Passos para o Deploy:
 
@@ -52,4 +52,4 @@ Este é um aplicativo de gerenciamento de tarefas simples com um cronômetro Pom
       - **Diretório de Publicação (Publish directory):** `build`
 4.  **Deploy:** Clique em "Deploy site".
 
-O Netlify irá automaticamente construir e fazer o deploy do seu site, fornecendo uma URL temporária. A partir de agora, cada vez que você fizer um push para a branch principal do seu repositório, o Netlify fará um novo deploy automaticamente. -->
+O Netlify irá automaticamente construir e fazer o deploy do seu site, fornecendo uma URL temporária. A partir de agora, cada vez que você fizer um push para a branch principal do seu repositório, o Netlify fará um novo deploy automaticamente.
