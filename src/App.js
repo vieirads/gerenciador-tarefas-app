@@ -161,7 +161,7 @@ const translations = {
     shortBreak: "courte pause", // Added for translation in skip message
     longBreak: "longue pause", // Added for translation in skip message
     allTasksCompletedNotification:
-      "Toutes les tâches sont terminées ! Bon travail !", // New notification message
+      "Toutes les tâches sont terminées ! Bon trabalho !", // New notification message
   },
 };
 
@@ -514,7 +514,7 @@ function App() {
       showNotification(translations[language].timerStarted, "started");
     },
     [showNotification, language, DEFAULT_POMODORO_FOCUS_DURATION]
-  ); // Added DEFAULT_POMODORO_FOCUS_DURATION
+  );
 
   // Main effect for task timer (Free Time and Pomodoro)
   useEffect(() => {
@@ -642,7 +642,7 @@ function App() {
     DEFAULT_POMODORO_FOCUS_DURATION,
     DEFAULT_POMODORO_LONG_BREAK_DURATION,
     DEFAULT_POMODORO_SHORT_BREAK_DURATION,
-  ]); // Added missing dependencies
+  ]);
 
   // Effect to manage the 5-minute interval timer between tasks
   useEffect(() => {
@@ -734,7 +734,6 @@ function App() {
         if (currentTask.mode === "time") {
           showNotification(translations[language].taskSkipped, "skipped");
           // If it's a free time task, mark as complete and start inter-task interval
-          markTaskComplete(currentTaskId);
           setIsIntervalRunning(true);
           setIntervalTimeLeft(interTaskIntervalDuration * 60); // Use dynamic interval
         } else if (currentTask.mode === "pomodoro") {
@@ -836,7 +835,7 @@ function App() {
     DEFAULT_POMODORO_FOCUS_DURATION,
     DEFAULT_POMODORO_LONG_BREAK_DURATION,
     DEFAULT_POMODORO_SHORT_BREAK_DURATION,
-  ]); // Added missing dependencies
+  ]);
 
   // Get current task for display
   const currentTask = tasks.find((task) => task.id === currentTaskId);
@@ -1642,10 +1641,18 @@ function App() {
               {/* Digital time display, centered over SVG */}
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <div
-                  className={`text-6xl font-extrabold transition-colors duration-300`}
+                  className={`text-5xl font-extrabold transition-colors duration-300 leading-none`}
                   style={{ color: textColor }}
                 >
-                  {formatTime(displayTime)}
+                  {Math.floor(displayTime / 60)
+                    .toString()
+                    .padStart(2, "0")}
+                </div>
+                <div
+                  className={`text-4xl font-extrabold transition-colors duration-300 leading-none`}
+                  style={{ color: textColor }}
+                >
+                  {(displayTime % 60).toString().padStart(2, "0")}
                 </div>
               </div>
             </div>
