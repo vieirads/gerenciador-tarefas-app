@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 const translations = {
   en: {
     taskManager: "Task Manager",
-    switchLightMode: "Switch to Light Mode",
+    switchLightMode: "Switch wto Light Mode",
     switchDarkMode: "Switch to Dark Mode",
     taskName: "Task Name",
     timeMode: "Time Mode",
@@ -144,7 +144,7 @@ const translations = {
     interTaskBreakEnded: "Intervalle entre les tâches terminé !",
     taskSkipped: "Tâche sautée !",
     interTaskBreakSkipped: "Intervalle entre les tâches sauté !",
-    pomodoroPhaseSkipped: "Phase Pomodoro {phase} sautée !",
+    pomodoroPhaseSkipped: "Fase Pomodoro {phase} sautée !",
     taskReset: "Tâche réinitialisée !",
     allTasksReset: "Toutes les tâches réinitialisées !",
     timerResumed: "Minuteur repris !",
@@ -171,15 +171,24 @@ const Notification = ({ message, type, onClose, darkMode }) => {
   const [animationClass, setAnimationClass] = useState("");
 
   useEffect(() => {
+    let slideOutTimer;
+    let closeTimer;
+
     if (message) {
       setIsVisible(true);
-      setAnimationClass("animate-slide-in"); // Start slide-in animation
-      const timer = setTimeout(() => {
-        setAnimationClass("animate-slide-out"); // Start slide-out animation
-        const clearTimer = setTimeout(() => onClose(), 500); // Wait for fade-out before clearing
-        return () => clearTimeout(clearTimer);
-      }, 3000); // Notification visible for 3 seconds before starting fade-out
+      setAnimationClass("animate-slide-in");
+
+      slideOutTimer = setTimeout(() => {
+        setAnimationClass("animate-slide-out");
+        closeTimer = setTimeout(() => onClose(), 500);
+      }, 3000);
     }
+
+    // Cleanup function for the useEffect
+    return () => {
+      clearTimeout(slideOutTimer);
+      clearTimeout(closeTimer);
+    };
   }, [message, onClose]);
 
   if (!isVisible || !message) return null;
