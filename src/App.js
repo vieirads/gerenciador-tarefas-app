@@ -380,15 +380,6 @@ function App() {
   const DEFAULT_POMODORO_LONG_BREAK_DURATION = 15 * 60; // 15 minutes long break
   // INTER_TASK_INTERVAL_DURATION is now a state: interTaskIntervalDuration * 60
 
-  // Function to format time in MM:SS
-  const formatTime = (seconds) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes.toString().padStart(2, "0")}:${remainingSeconds
-      .toString()
-      .padStart(2, "0")}`;
-  };
-
   // Function to format total time in HH:MM
   const formatTotalTime = (totalSeconds) => {
     const hours = Math.floor(totalSeconds / 3600);
