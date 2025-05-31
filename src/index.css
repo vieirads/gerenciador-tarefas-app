@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Você pode adicionar estilos globais personalizados aqui, se necessário */
+/* Por exemplo, para garantir que o corpo ocupe a altura total da tela */
+html, body, #root {
+  height: 100%;
+}
