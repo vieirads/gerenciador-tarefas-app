@@ -179,7 +179,6 @@ const Notification = ({ message, type, onClose, darkMode }) => {
         const clearTimer = setTimeout(() => onClose(), 500); // Wait for fade-out before clearing
         return () => clearTimeout(clearTimer);
       }, 3000); // Notification visible for 3 seconds before starting fade-out
-      return () => clearTimeout(timer);
     }
   }, [message, onClose]);
 
@@ -533,8 +532,24 @@ function App() {
                 translations[language].taskCompleted,
                 "completed"
               );
-              setIsIntervalRunning(true);
-              setIntervalTimeLeft(interTaskIntervalDuration * 60); // Use dynamic interval
+
+              // Check if there are any uncompleted tasks left after this one
+              const remainingUncompletedTasks = tasks.filter(
+                (task) => !task.completed && task.id !== currentTaskId
+              );
+
+              if (remainingUncompletedTasks.length > 0) {
+                setIsIntervalRunning(true);
+                setIntervalTimeLeft(interTaskIntervalDuration * 60);
+              } else {
+                // No more uncompleted tasks, stop everything
+                setCurrentTaskId(null);
+                setTimeLeft(0);
+                setPomodoroState("idle");
+                setTimerRunning(false); // Ensure main timer is off
+                clearInterval(timerRef.current);
+                clearInterval(intervalTimerRef.current); // Ensure interval timer is also off
+              }
             } else if (currentTask && currentTask.mode === "pomodoro") {
               let nextPomodoroState;
               let nextTime;
@@ -658,9 +673,9 @@ function App() {
             ); // Notification for inter-task break end
 
             // After inter-task interval, try to start the next task in sequence
-            const nextTaskInSequence = tasks.find(
-              (task) => !task.completed && task.id !== currentTaskId
-            );
+            const nextTaskInSequence = tasks
+              .filter((task) => !task.completed)
+              .find((task) => task.id !== currentTaskId); // Filter out current task if it was completed
             if (nextTaskInSequence) {
               startTask(nextTaskInSequence);
             } else {
@@ -709,9 +724,9 @@ function App() {
       timeToSkip = intervalTimeLeft;
       showNotification(translations[language].interTaskBreakSkipped, "skipped");
       // If in inter-task interval, skip to the next task
-      const nextTaskInSequence = tasks.find(
-        (task) => !task.completed && task.id !== currentTaskId
-      );
+      const nextTaskInSequence = tasks
+        .filter((task) => !task.completed)
+        .find((task) => task.id !== currentTaskId); // Filter out current task if it was completed
       if (nextTaskInSequence) {
         startTask(nextTaskInSequence);
       } else {
@@ -733,9 +748,25 @@ function App() {
         timeToSkip = timeLeft;
         if (currentTask.mode === "time") {
           showNotification(translations[language].taskSkipped, "skipped");
-          // If it's a free time task, mark as complete and start inter-task interval
-          setIsIntervalRunning(true);
-          setIntervalTimeLeft(interTaskIntervalDuration * 60); // Use dynamic interval
+          markTaskComplete(currentTaskId); // Mark as complete even if skipped
+
+          // Check if there are any uncompleted tasks left after this one
+          const remainingUncompletedTasks = tasks.filter(
+            (task) => !task.completed && task.id !== currentTaskId
+          );
+
+          if (remainingUncompletedTasks.length > 0) {
+            setIsIntervalRunning(true);
+            setIntervalTimeLeft(interTaskIntervalDuration * 60); // Use dynamic interval
+          } else {
+            // No more uncompleted tasks, stop everything
+            setCurrentTaskId(null);
+            setTimeLeft(0);
+            setPomodoroState("idle");
+            setTimerRunning(false); // Ensure main timer is off
+            clearInterval(timerRef.current);
+            clearInterval(intervalTimerRef.current); // Ensure interval timer is also off
+          }
         } else if (currentTask.mode === "pomodoro") {
           let phaseName = "";
           switch (pomodoroState) {
@@ -798,9 +829,9 @@ function App() {
             setPomodoroCount(0);
             setPomodoroState("idle");
             // After a long Pomodoro break, try to start the next task in sequence
-            const nextTaskInSequence = tasks.find(
-              (task) => !task.completed && task.id !== currentTaskId
-            );
+            const nextTaskInSequence = tasks
+              .filter((task) => !task.completed)
+              .find((task) => task.id !== currentTaskId); // Filter out current task if it was completed
             if (nextTaskInSequence) {
               startTask(nextTaskInSequence);
             } else {
@@ -1067,7 +1098,7 @@ function App() {
 
     return (
       <div
-        className={`flex flex-col items-center p-4 rounded-lg relative ${
+        className={`flex flex-col items-center p-2 sm:p-4 rounded-lg relative ${
           darkMode ? "border border-gray-600" : "border border-gray-200"
         } transition-colors duration-300 group`}
         onMouseEnter={() => setIsHovered(true)}
@@ -1075,21 +1106,21 @@ function App() {
       >
         <label
           htmlFor={id}
-          className={`absolute left-3 px-1 text-sm font-medium z-10 top-0 -translate-y-1/2 ${
+          className={`absolute left-3 px-1 text-xs sm:text-sm font-medium z-10 top-0 -translate-y-1/2 ${
             darkMode ? "bg-gray-800 text-gray-300" : "bg-white text-gray-600"
           } transition-colors duration-300`}
         >
           {translations[language][translationKey]}
         </label>
-        <div className="flex items-center space-x-2 mb-2">
-          <span className="text-3xl">{icon}</span>{" "}
+        <div className="flex items-center space-x-1 sm:space-x-2 mb-1 sm:mb-2">
+          <span className="text-2xl sm:text-3xl">{icon}</span>{" "}
           {/* Use the icon prop directly */}
           <input
             type="number"
             id={id}
-            className={`text-5xl font-extrabold ${
+            className={`text-4xl sm:text-5xl font-extrabold ${
               darkMode ? "text-indigo-300" : "text-indigo-800"
-            } w-24 text-center !bg-transparent focus:outline-none py-2 px-3 !focus:bg-transparent transition-colors duration-300 custom-number-input`}
+            } w-20 sm:w-24 text-center !bg-transparent focus:outline-none py-1 sm:py-2 px-2 sm:px-3 !focus:bg-transparent transition-colors duration-300 custom-number-input`}
             value={value}
             onChange={(e) => onChange(parseInt(e.target.value, 10) || 0)}
             min={min}
@@ -1098,14 +1129,14 @@ function App() {
             autoComplete="off"
           />
           <div
-            className={`flex flex-col space-y-1 transition-opacity duration-300 ${
+            className={`flex flex-col space-y-0.5 sm:space-y-1 transition-opacity duration-300 ${
               isHovered ? "opacity-100" : "opacity-0"
             }`}
           >
             <button
               type="button"
               onClick={handleIncrement}
-              className={`p-1 rounded-full ${
+              className={`p-0.5 sm:p-1 rounded-full ${
                 darkMode
                   ? "bg-indigo-700 text-indigo-300"
                   : "bg-indigo-200 text-indigo-700"
@@ -1113,7 +1144,7 @@ function App() {
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
+                className="h-3 w-3 sm:h-4 sm:w-4"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -1129,7 +1160,7 @@ function App() {
             <button
               type="button"
               onClick={handleDecrement}
-              className={`p-1 rounded-full ${
+              className={`p-0.5 sm:p-1 rounded-full ${
                 darkMode
                   ? "bg-indigo-700 text-indigo-300"
                   : "bg-indigo-200 text-indigo-700"
@@ -1137,7 +1168,7 @@ function App() {
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
+                className="h-3 w-3 sm:h-4 sm:w-4"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -1154,7 +1185,7 @@ function App() {
         </div>
         {unit && (
           <span
-            className={`text-sm ${
+            className={`text-xs sm:text-sm ${
               darkMode ? "text-gray-400" : "text-gray-500"
             }`}
           >
@@ -1185,13 +1216,13 @@ function App() {
         `}
       </style>
       <div
-        className={`p-8 rounded-lg shadow-md w-full max-w-2xl ${
+        className={`p-4 sm:p-8 rounded-lg shadow-md w-full max-w-2xl ${
           darkMode ? "bg-gray-800 text-gray-100" : "bg-white"
         } transition-colors duration-300`}
       >
         <div className="flex justify-between items-center mb-6">
           <h1
-            className={`text-3xl font-bold ${
+            className={`text-2xl sm:text-3xl font-bold ${
               darkMode ? "text-gray-100" : "text-gray-800"
             }`}
           >
@@ -1210,7 +1241,7 @@ function App() {
               {/* Three vertical dots icon */}
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
+                className="h-5 w-5 sm:h-6 sm:w-6"
                 viewBox="0 0 24 24"
                 fill="currentColor"
               >
@@ -1233,7 +1264,7 @@ function App() {
               {darkMode ? (
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
+                  className="h-5 w-5 sm:h-6 sm:w-6"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -1248,7 +1279,7 @@ function App() {
               ) : (
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
+                  className="h-5 w-5 sm:h-6 sm:w-6"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -1269,12 +1300,12 @@ function App() {
         {showOptions && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div
-              className={`p-8 rounded-lg shadow-md w-full max-w-md ${
+              className={`p-4 sm:p-8 rounded-lg shadow-md w-full max-w-md ${
                 darkMode ? "bg-gray-800 text-gray-100" : "bg-white"
               } transition-colors duration-300 relative`}
             >
               <h2
-                className={`text-2xl font-bold mb-6 ${
+                className={`text-xl sm:text-2xl font-bold mb-4 sm:mb-6 ${
                   darkMode ? "text-gray-100" : "text-gray-800"
                 }`}
               >
@@ -1283,12 +1314,12 @@ function App() {
 
               <button
                 onClick={() => setShowOptions(false)}
-                className="absolute top-4 right-4 p-2 rounded-full text-gray-400 hover:text-gray-600 focus:outline-none"
+                className="absolute top-2 right-2 sm:top-4 sm:right-4 p-1 sm:p-2 rounded-full text-gray-400 hover:text-gray-600 focus:outline-none"
                 title="Close options"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
+                  className="h-5 w-5 sm:h-6 sm:w-6"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -1303,20 +1334,20 @@ function App() {
               </button>
 
               {/* Language Selection */}
-              <div className="mb-6">
+              <div className="mb-4 sm:mb-6">
                 <label
-                  className={`block text-lg font-semibold mb-2 ${
+                  className={`block text-base sm:text-lg font-semibold mb-1 sm:mb-2 ${
                     darkMode ? "text-gray-300" : "text-gray-700"
                   }`}
                 >
                   {translations[language].language}
                 </label>
-                <div className="flex space-x-3">
+                <div className="flex space-x-2 sm:space-x-3">
                   {Object.keys(translations).map((langKey) => (
                     <button
                       key={langKey}
                       onClick={() => setLanguage(langKey)}
-                      className={`px-4 py-2 rounded-md font-medium transition-colors duration-200 ${
+                      className={`px-3 py-1 sm:px-4 sm:py-2 rounded-md font-medium transition-colors duration-200 text-sm sm:text-base ${
                         language === langKey
                           ? "bg-indigo-600 text-white"
                           : `${
@@ -1337,7 +1368,7 @@ function App() {
               </div>
 
               {/* Inter-Task Interval Setting */}
-              <div className="mb-6">
+              <div className="mb-4 sm:mb-6">
                 <NumberInput
                   id="interTaskInterval"
                   label={translations[language].interTaskIntervalSetting}
@@ -1359,18 +1390,16 @@ function App() {
         {/* Form to add tasks */}
         <form
           onSubmit={addTask}
-          className={`mb-8 p-4 rounded-md ${
+          className={`mb-6 sm:mb-8 p-4 rounded-md ${
             darkMode ? "border border-gray-700" : "border border-gray-200"
           } transition-colors duration-300`}
         >
           <div className="mb-4">
-            {" "}
-            {/* Removed relative from this div */}
             <label
               htmlFor="taskName"
               className={`block text-sm font-bold mb-2 ${
                 darkMode ? "text-gray-300" : "text-gray-700"
-              } transition-colors duration-300`} /* Adjusted classes */
+              } transition-colors duration-300`}
             >
               {translations[language].taskName}
             </label>
@@ -1383,7 +1412,7 @@ function App() {
                   : "border-gray-300 text-gray-700"
               } rounded-none w-full py-2 px-3 leading-tight focus:outline-none ${
                 darkMode ? "focus:border-indigo-400" : "focus:border-indigo-500"
-              } !bg-transparent !focus:bg-transparent transition-colors duration-300`} /* Removed pt-4 */
+              } !bg-transparent !focus:bg-transparent transition-colors duration-300`}
               value={taskName}
               onChange={(e) => setTaskName(e.target.value)}
               placeholder=""
@@ -1392,12 +1421,8 @@ function App() {
             />
           </div>
 
-          <div className="flex items-center justify-between mb-4">
-            {" "}
-            {/* New flex container */}
-            <div className="flex-grow">
-              {" "}
-              {/* Allows time mode content to take up space */}
+          <div className="flex flex-col sm:flex-row items-center justify-between mb-4">
+            <div className="flex-grow w-full sm:w-auto mb-4 sm:mb-0">
               <label
                 className={`block text-sm font-bold mb-2 ${
                   darkMode ? "text-gray-300" : "text-gray-700"
@@ -1444,12 +1469,12 @@ function App() {
             </div>
             <button
               type="submit"
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold w-12 h-12 rounded-full flex items-center justify-center focus:outline-none focus:shadow-outline ml-4" // Added ml-4 for spacing
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center focus:outline-none focus:shadow-outline sm:ml-4"
               title={translations[language].addTask}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
+                className="h-5 w-5 sm:h-6 sm:w-6"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -1483,13 +1508,13 @@ function App() {
           {taskMode === "pomodoro" && (
             <>
               <h3
-                className={`text-xl font-semibold mb-4 mt-6 ${
+                className={`text-lg sm:text-xl font-semibold mb-4 mt-6 ${
                   darkMode ? "text-gray-100" : "text-gray-700"
                 } transition-colors duration-300`}
               >
                 {translations[language].pomodoroSettings}
               </h3>
-              <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 {/* Focus Sessions */}
                 <NumberInput
                   id="pomodoroFocusSessions"
@@ -1548,23 +1573,23 @@ function App() {
 
         {/* Timer Display */}
         <div
-          className={`text-center mb-8 p-6 rounded-lg relative flex flex-col ${
+          className={`text-center mb-6 sm:mb-8 p-4 sm:p-6 rounded-lg relative flex flex-col ${
             darkMode ? "border border-gray-700" : "border border-gray-200"
           } transition-colors duration-300`}
         >
           {/* Task Name (top-left absolute) */}
           <div
-            className={`absolute left-3 px-1 text-xs font-bold z-10 top-0 -translate-y-1/2 ${
+            className={`absolute left-3 px-1 text-xs sm:text-sm font-bold z-10 top-0 -translate-y-1/2 ${
               darkMode ? "bg-gray-800 text-gray-300" : "bg-white text-gray-700"
             } transition-colors duration-300`}
           >
             <h2
-              className={`text-xl font-semibold flex items-center ${
+              className={`text-base sm:text-xl font-semibold flex items-center ${
                 darkMode ? "text-gray-100" : "text-gray-700"
               } transition-colors duration-300`}
             >
               {currentTask && currentTask.mode === "pomodoro" && (
-                <span className="mr-2 text-xl">🍅</span>
+                <span className="mr-1 sm:mr-2 text-base sm:text-xl">🍅</span>
               )}
               {isIntervalRunning
                 ? translations[language].interTaskInterval
@@ -1577,16 +1602,16 @@ function App() {
           {/* Pomodoro State and Emoji (below title, aligned left) */}
           {currentTask && currentTask.mode === "pomodoro" && (
             <div
-              className={`absolute left-3 px-1 text-xs font-bold z-10 top-12 -translate-y-1/2 ${
+              className={`absolute left-3 px-1 text-xs sm:text-sm font-bold z-10 top-8 sm:top-12 -translate-y-1/2 ${
                 darkMode
                   ? "bg-gray-800 text-gray-300"
-                  : "bg-white text-lg font-medium"
+                  : "bg-white text-base sm:text-lg font-medium"
               } flex items-center ${
                 darkMode ? "text-indigo-300" : "text-indigo-700"
               } transition-colors duration-300`}
             >
               {getCurrentPhaseEmoji()}
-              <span className="ml-2">
+              <span className="ml-1 sm:ml-2">
                 {pomodoroState === "focus"
                   ? `${translations[language].focus} (${pomodoroCount + 1}/${
                       currentTask.pomodoroFocusSessions
@@ -1605,11 +1630,9 @@ function App() {
           )}
 
           {/* Main content: Timer Circle + Times Column */}
-          <div className="flex flex-col md:flex-row items-center justify-center mt-28">
-            {" "}
-            {/* Adjusted mt-28 */}
+          <div className="flex flex-col md:flex-row items-center justify-center mt-20 sm:mt-28">
             {/* Main Timer Circle (left) */}
-            <div className="relative w-48 h-48 mb-4 md:mb-0 md:mr-8">
+            <div className="relative w-40 h-40 sm:w-48 sm:h-48 mb-4 md:mb-0 md:mr-8">
               <svg className="w-full h-full" viewBox="0 0 100 100">
                 {/* Background circle */}
                 <circle
@@ -1641,7 +1664,7 @@ function App() {
               {/* Digital time display, centered over SVG */}
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <div
-                  className={`text-5xl font-extrabold transition-colors duration-300 leading-none`}
+                  className={`text-4xl md:text-5xl font-extrabold transition-colors duration-300 leading-none`}
                   style={{ color: textColor }}
                 >
                   {Math.floor(displayTime / 60)
@@ -1649,25 +1672,24 @@ function App() {
                     .padStart(2, "0")}
                 </div>
                 <div
-                  className={`text-4xl font-extrabold transition-colors duration-300 leading-none`}
+                  className={`text-4xl md:text-5xl font-extrabold transition-colors duration-300 leading-none`}
                   style={{ color: textColor }}
                 >
                   {(displayTime % 60).toString().padStart(2, "0")}
                 </div>
               </div>
             </div>
+
             {/* Times Grid (right) */}
-            <div className="grid grid-cols-2 gap-4 mt-4 md:mt-0">
-              {" "}
-              {/* Changed to grid, added gap, removed flex-col, items-start, space-y-4 */}
+            <div className="grid grid-cols-2 gap-2 sm:gap-4 mt-4 md:mt-0">
               {/* Elapsed Card */}
               <div
-                className={`p-4 rounded-lg relative border ${
+                className={`p-2 sm:p-4 rounded-lg relative border ${
                   darkMode ? "border-gray-600" : "border-gray-200"
                 } transition-colors duration-300 w-full`}
               >
                 <label
-                  className={`absolute left-3 px-1 text-xs font-bold z-10 top-0 -translate-y-1/2 ${
+                  className={`absolute left-2 sm:left-3 px-1 text-xs font-bold z-10 top-0 -translate-y-1/2 ${
                     darkMode
                       ? "bg-gray-800 text-gray-300"
                       : "bg-white text-gray-700"
@@ -1676,21 +1698,22 @@ function App() {
                   {translations[language].elapsed}
                 </label>
                 <span
-                  className={`block text-xl font-extrabold ${
+                  className={`block text-base sm:text-xl font-extrabold ${
                     darkMode ? "text-indigo-300" : "text-indigo-800"
                   } text-center pt-2 transition-colors duration-300`}
                 >
                   {formatTotalTime(totalGlobalElapsedTime)}
                 </span>
               </div>
+
               {/* Remaining Card */}
               <div
-                className={`p-4 rounded-lg relative border ${
+                className={`p-2 sm:p-4 rounded-lg relative border ${
                   darkMode ? "border-gray-600" : "border-gray-200"
                 } transition-colors duration-300 w-full`}
               >
                 <label
-                  className={`absolute left-3 px-1 text-xs font-bold z-10 top-0 -translate-y-1/2 ${
+                  className={`absolute left-2 sm:left-3 px-1 text-xs font-bold z-10 top-0 -translate-y-1/2 ${
                     darkMode
                       ? "bg-gray-800 text-gray-300"
                       : "bg-white text-gray-700"
@@ -1699,7 +1722,7 @@ function App() {
                   {translations[language].remaining}
                 </label>
                 <span
-                  className={`block text-xl font-extrabold ${
+                  className={`block text-base sm:text-xl font-extrabold ${
                     darkMode ? "text-indigo-300" : "text-indigo-800"
                   } text-center pt-2 transition-colors duration-300`}
                 >
@@ -1708,14 +1731,15 @@ function App() {
                   )}
                 </span>
               </div>
+
               {/* Estimated Card */}
               <div
-                className={`p-4 rounded-lg relative border ${
+                className={`p-2 sm:p-4 rounded-lg relative border ${
                   darkMode ? "border-gray-600" : "border-gray-200"
                 } transition-colors duration-300 w-full`}
               >
                 <label
-                  className={`absolute left-3 px-1 text-xs font-bold z-10 top-0 -translate-y-1/2 ${
+                  className={`absolute left-2 sm:left-3 px-1 text-xs font-bold z-10 top-0 -translate-y-1/2 ${
                     darkMode
                       ? "bg-gray-800 text-gray-300"
                       : "bg-white text-gray-700"
@@ -1724,21 +1748,22 @@ function App() {
                   {translations[language].estimated}
                 </label>
                 <span
-                  className={`block text-xl font-extrabold ${
+                  className={`block text-base sm:text-xl font-extrabold ${
                     darkMode ? "text-indigo-300" : "text-indigo-800"
                   } text-center pt-2 transition-colors duration-300`}
                 >
                   {formatTotalTime(totalEstimatedTime)}
                 </span>
               </div>
+
               {/* Skipped Time Card */}
               <div
-                className={`p-4 rounded-lg relative border ${
+                className={`p-2 sm:p-4 rounded-lg relative border ${
                   darkMode ? "border-gray-600" : "border border-gray-200"
                 } transition-colors duration-300 w-full`}
               >
                 <label
-                  className={`absolute left-3 px-1 text-xs font-bold z-10 top-0 -translate-y-1/2 ${
+                  className={`absolute left-2 sm:left-3 px-1 text-xs font-bold z-10 top-0 -translate-y-1/2 ${
                     darkMode
                       ? "bg-gray-800 text-gray-300"
                       : "bg-white text-gray-700"
@@ -1747,7 +1772,7 @@ function App() {
                   {translations[language].skipped}
                 </label>
                 <span
-                  className={`block text-xl font-extrabold ${
+                  className={`block text-base sm:text-xl font-extrabold ${
                     darkMode ? "text-indigo-300" : "text-indigo-800"
                   } text-center pt-2 transition-colors duration-300`}
                 >
@@ -1758,7 +1783,7 @@ function App() {
           </div>
           {/* Estimated Completion Time Text */}
           <p
-            className={`text-sm mt-4 ${
+            className={`text-xs sm:text-sm mt-2 sm:mt-4 ${
               darkMode ? "text-gray-400" : "text-gray-500"
             } transition-colors duration-300`}
           >
@@ -1769,7 +1794,7 @@ function App() {
           </p>
 
           {/* Buttons (below all content, centered) */}
-          <div className="flex justify-center space-x-4 mt-8">
+          <div className="flex justify-center space-x-2 sm:space-x-4 mt-4 sm:mt-8">
             <button
               onClick={() => {
                 if (timerRunning) {
@@ -1796,7 +1821,7 @@ function App() {
                   }
                 }
               }}
-              className={`w-12 h-12 rounded-full flex items-center justify-center font-bold transition-all duration-200 ${
+              className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-bold transition-all duration-200 ${
                 timerRunning
                   ? "bg-red-500 hover:bg-red-600 text-white"
                   : "bg-green-500 hover:bg-green-600 text-white"
@@ -1813,7 +1838,7 @@ function App() {
               {timerRunning ? (
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
+                  className="h-5 w-5 sm:h-6 sm:w-6"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -1828,7 +1853,7 @@ function App() {
               ) : (
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
+                  className="h-5 w-5 sm:h-6 sm:w-6"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -1849,7 +1874,7 @@ function App() {
             </button>
             <button
               onClick={resetTimer} // Now resets only the current task
-              className="w-12 h-12 rounded-full flex items-center justify-center bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold transition-all duration-200"
+              className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold transition-all duration-200"
               disabled={
                 !currentTaskId &&
                 !isIntervalRunning &&
@@ -1861,8 +1886,8 @@ function App() {
               {/* Reset icon (circular refresh arrow) */}
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
+                width="20"
+                height="20"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -1877,13 +1902,13 @@ function App() {
             </button>
             <button
               onClick={skipCurrentPhase}
-              className="w-12 h-12 rounded-full flex items-center justify-center bg-yellow-200 hover:bg-yellow-300 text-yellow-800 font-bold transition-all duration-200"
+              className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center bg-yellow-200 hover:bg-yellow-300 text-yellow-800 font-bold transition-all duration-200"
               disabled={!currentTaskId && !isIntervalRunning} // Disable if no task or interval is active
               title={translations[language].skipCurrentPhase}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
+                className="h-5 w-5 sm:h-6 sm:w-6"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -1898,12 +1923,12 @@ function App() {
             </button>
             <button
               onClick={resetAll} // New button to reset everything
-              className="w-12 h-12 rounded-full flex items-center justify-center bg-red-600 hover:bg-red-700 text-white font-bold transition-all duration-200"
+              className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center bg-red-600 hover:bg-red-700 text-white font-bold transition-all duration-200"
               title={translations[language].resetAll}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
+                className="h-5 w-5 sm:h-6 sm:w-6"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -1922,7 +1947,7 @@ function App() {
         {/* Task List */}
         <div>
           <h2
-            className={`text-2xl font-bold mb-4 ${
+            className={`text-xl sm:text-2xl font-bold mb-4 ${
               darkMode ? "text-gray-100" : "text-gray-800"
             } transition-colors duration-300`}
           >
@@ -1930,16 +1955,14 @@ function App() {
           </h2>
           {tasks.length === 0 ? (
             <p
-              className={`text-center ${
+              className={`text-center text-sm sm:text-base ${
                 darkMode ? "text-gray-400" : "text-gray-500"
               } transition-colors duration-300`}
             >
               {translations[language].noTasksAdded}
             </p>
           ) : (
-            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {" "}
-              {/* Changed to 2x2 grid */}
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
               {tasks.map((task, index) => (
                 <li
                   key={task.id}
@@ -1950,7 +1973,7 @@ function App() {
                   onDragEnter={(e) => handleDragEnter(e, index)}
                   onDragLeave={handleDragLeave}
                   onDragEnd={handleDragEnd}
-                  className={`flex flex-col p-4 rounded-lg shadow-md transition-all duration-200 ${
+                  className={`flex flex-col p-3 sm:p-4 rounded-lg shadow-md transition-all duration-200 ${
                     currentTaskId === task.id
                       ? "border-2 border-indigo-500"
                       : `${
@@ -1960,43 +1983,54 @@ function App() {
                         }`
                   } bg-transparent cursor-grab relative`}
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    {" "}
-                    {/* Added justify-between */}
+                  <div className="flex items-center justify-between mb-1 sm:mb-2">
                     <span
-                      className={`font-semibold text-lg flex items-center ${
+                      className={`font-semibold text-base sm:text-lg flex items-center ${
                         darkMode ? "text-gray-100" : "text-gray-800"
                       } transition-colors duration-300`}
                     >
                       {task.mode === "pomodoro" && (
-                        <span className="mr-2 text-xl">🍅</span>
-                      )}{" "}
-                      {/* Tomato before name */}
+                        <span className="mr-1 sm:mr-2 text-base sm:text-xl">
+                          🍅
+                        </span>
+                      )}
                       {task.name}
                     </span>
                     {/* Action buttons in top-right corner */}
-                    <div className="flex space-x-2">
-                      {" "}
-                      {/* Container for buttons */}
+                    <div className="flex space-x-1 sm:space-x-2">
                       {!task.completed && (
                         <button
-                          onClick={() => startTask(task)}
-                          className={`p-1 rounded-full text-white transition-all duration-200 ${
+                          onClick={() => {
+                            if (currentTaskId === task.id) {
+                              if (timerRunning) {
+                                pauseTimer();
+                              } else {
+                                setTimerRunning(true); // Resume
+                                showNotification(
+                                  translations[language].timerResumed,
+                                  "started"
+                                );
+                              }
+                            } else {
+                              startTask(task); // Start this task (will stop any other running task)
+                            }
+                          }}
+                          className={`p-0.5 sm:p-1 rounded-full text-white transition-all duration-200 ${
                             currentTaskId === task.id && timerRunning
                               ? "bg-red-500 hover:bg-red-600" // Pause color
                               : "bg-green-500 hover:bg-green-600" // Play color
                           }`}
-                          disabled={currentTaskId === task.id && timerRunning}
+                          disabled={task.completed} // Only disable if the task is completed
                           title={
-                            currentTaskId === task.id
+                            currentTaskId === task.id && timerRunning
                               ? translations[language].pauseTimer
                               : translations[language].startTimer
                           }
                         >
-                          {currentTaskId === task.id ? (
+                          {currentTaskId === task.id && timerRunning ? (
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
-                              className="h-5 w-5"
+                              className="h-4 w-4 sm:h-5 sm:w-5"
                               fill="none"
                               viewBox="0 0 24 24"
                               stroke="currentColor"
@@ -2011,7 +2045,7 @@ function App() {
                           ) : (
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
-                              className="h-5 w-5"
+                              className="h-4 w-4 sm:h-5 sm:w-5"
                               fill="none"
                               viewBox="0 0 24 24"
                               stroke="currentColor"
@@ -2033,12 +2067,12 @@ function App() {
                       )}
                       <button
                         onClick={() => deleteTask(task.id)}
-                        className="p-1 rounded-full text-red-500 hover:text-red-700 transition-all duration-200"
+                        className="p-0.5 sm:p-1 rounded-full text-red-500 hover:text-red-700 transition-all duration-200"
                         title="Delete Task"
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
-                          className="h-5 w-5"
+                          className="h-4 w-4 sm:h-5 sm:w-5"
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
@@ -2056,9 +2090,9 @@ function App() {
 
                   {task.mode === "time" && (
                     <div
-                      className={`flex flex-wrap gap-x-4 gap-y-2 text-sm ${
+                      className={`flex flex-wrap gap-x-2 sm:gap-x-4 gap-y-1 sm:gap-y-2 text-xs sm:text-sm ${
                         darkMode ? "text-gray-300" : "text-gray-700"
-                      } mt-2 transition-colors duration-300`}
+                      } mt-1 sm:mt-2 transition-colors duration-300`}
                     >
                       <span className="flex items-center space-x-1">
                         ⏱️ {task.duration / 60} min
@@ -2068,9 +2102,9 @@ function App() {
 
                   {task.mode === "pomodoro" && (
                     <div
-                      className={`grid grid-cols-2 gap-x-4 gap-y-2 text-sm ${
+                      className={`grid grid-cols-2 gap-x-2 sm:gap-x-4 gap-y-1 sm:gap-y-2 text-xs sm:text-sm ${
                         darkMode ? "text-gray-300" : "text-gray-700"
-                      } mt-2 transition-colors duration-300`}
+                      } mt-1 sm:mt-2 transition-colors duration-300`}
                     >
                       <span className="flex items-center space-x-1">
                         🎯 {task.pomodoroFocusSessions}
@@ -2089,10 +2123,10 @@ function App() {
 
                   {/* Completion check icon (bottom-right) */}
                   {task.completed && (
-                    <div className="absolute bottom-2 right-2 p-1 bg-green-500 rounded-full shadow-md">
+                    <div className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 p-0.5 sm:p-1 bg-green-500 rounded-full shadow-md">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        className="h-4 w-4 text-white"
+                        className="h-3 w-3 sm:h-4 sm:w-4 text-white"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
