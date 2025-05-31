@@ -155,13 +155,13 @@ const translations = {
     language: "Langue",
     interTaskIntervalSetting: "Intervalle entre les tâches (minutes)",
     saveSettings: "Enregistrer les paramètres",
-    readyToToStart: "Prêt à commencer",
+    readyToStart: "Prêt à commencer",
     estimatedCompletionTime: "Achèvement estimé : {time}",
     focus: "focus", // Added for translation in skip message
     shortBreak: "courte pause", // Added for translation in skip message
     longBreak: "longue pause", // Added for translation in skip message
     allTasksCompletedNotification:
-      "Toutes les tâches sont terminadas! Ótimo trabalho!", // New notification message
+      "Toutes les tâches sont terminées ! Bon travail !", // New notification message
   },
 };
 
@@ -513,8 +513,8 @@ function App() {
       setTimerRunning(true);
       showNotification(translations[language].timerStarted, "started");
     },
-    [showNotification, language]
-  );
+    [showNotification, language, DEFAULT_POMODORO_FOCUS_DURATION]
+  ); // Added DEFAULT_POMODORO_FOCUS_DURATION
 
   // Main effect for task timer (Free Time and Pomodoro)
   useEffect(() => {
@@ -639,7 +639,10 @@ function App() {
     showNotification,
     language,
     interTaskIntervalDuration,
-  ]);
+    DEFAULT_POMODORO_FOCUS_DURATION,
+    DEFAULT_POMODORO_LONG_BREAK_DURATION,
+    DEFAULT_POMODORO_SHORT_BREAK_DURATION,
+  ]); // Added missing dependencies
 
   // Effect to manage the 5-minute interval timer between tasks
   useEffect(() => {
@@ -691,6 +694,7 @@ function App() {
     startTask,
     showNotification,
     language,
+    interTaskIntervalDuration,
   ]);
 
   // Function to skip current phase
@@ -745,7 +749,9 @@ function App() {
             case "longBreak":
               phaseName = translations[language].longBreak; // Use translated phase name
               break;
-            // No default case needed, as pomodoroState will always be one of these
+            default: // Added default case
+              phaseName = "unknown phase";
+              break;
           }
           showNotification(
             translations[language].pomodoroPhaseSkipped.replace(
@@ -826,7 +832,11 @@ function App() {
     showNotification,
     language,
     interTaskIntervalDuration,
-  ]);
+    intervalTimeLeft,
+    DEFAULT_POMODORO_FOCUS_DURATION,
+    DEFAULT_POMODORO_LONG_BREAK_DURATION,
+    DEFAULT_POMODORO_SHORT_BREAK_DURATION,
+  ]); // Added missing dependencies
 
   // Get current task for display
   const currentTask = tasks.find((task) => task.id === currentTaskId);
@@ -1590,7 +1600,7 @@ function App() {
                     : translations[language].shortBreak
                   : pomodoroState === "longBreak"
                   ? translations[language].longBreak
-                  : translations[language].readyToToStart}
+                  : translations[language].readyToStart}
               </span>
             </div>
           )}
