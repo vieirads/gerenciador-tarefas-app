@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import * as Tone from "tone"; // Import Tone.js
 
 // Translations object for i18n
 const translations = {
   en: {
     taskManager: "Task Manager",
-    switchLightMode: "Switch wto Light Mode",
+    switchLightMode: "Switch to Light Mode",
     switchDarkMode: "Switch to Dark Mode",
     taskName: "Task Name",
     timeMode: "Time Mode",
@@ -54,6 +55,7 @@ const translations = {
     shortBreak: "short break", // Added for translation in skip message
     longBreak: "long break", // Added for translation in skip message
     allTasksCompletedNotification: "All tasks completed! Great job!", // New notification message
+    enableSoundNotifications: "Enable Sound Notifications", // New translation
   },
   "pt-BR": {
     taskManager: "Gerenciador de Tarefas",
@@ -108,6 +110,7 @@ const translations = {
     longBreak: "pausa longa", // Added for translation in skip message
     allTasksCompletedNotification:
       "Todas as tarefas foram concluídas! Ótimo trabalho!", // New notification message
+    enableSoundNotifications: "Habilitar Sons de Notificação", // New translation
   },
   fr: {
     taskManager: "Gestionnaire de Tâches",
@@ -144,7 +147,7 @@ const translations = {
     interTaskBreakEnded: "Intervalle entre les tâches terminé !",
     taskSkipped: "Tâche sautée !",
     interTaskBreakSkipped: "Intervalle entre les tâches sauté !",
-    pomodoroPhaseSkipped: "Fase Pomodoro {phase} sautée !",
+    pomodoroPhaseSkipped: "Phase Pomodoro {phase} sautée !",
     taskReset: "Tâche réinitialisée !",
     allTasksReset: "Toutes les tâches réinitialisées !",
     timerResumed: "Minuteur repris !",
@@ -162,6 +165,7 @@ const translations = {
     longBreak: "longue pause", // Added for translation in skip message
     allTasksCompletedNotification:
       "Toutes les tâches sont terminées ! Bon trabalho !", // New notification message
+    enableSoundNotifications: "Activer les sons de notification", // New translation
   },
 };
 
@@ -350,10 +354,105 @@ function App() {
     }
   );
 
-  // Function to show notifications
-  const showNotification = useCallback((message, type) => {
-    setNotification({ message, type });
+  // Sound enabled state, initialized from localStorage or default to false
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    const savedSound = localStorage.getItem("soundEnabled");
+    return savedSound === "true" ? true : false;
+  });
+
+  // Refs for Tone.js synths
+  const focusSynthRef = useRef(null);
+  const breakSynthRef = useRef(null);
+  const longBreakSynthRef = useRef(null);
+  const completeSynthRef = useRef(null);
+  const skippedSynthRef = useRef(null);
+  const pausedSynthRef = useRef(null);
+  const startedSynthRef = useRef(null);
+  const addedSynthRef = useRef(null);
+  const resetSynthRef = useRef(null);
+
+  // Initialize Tone.js synths on component mount
+  useEffect(() => {
+    Tone.start(); // Start Tone.js audio context
+
+    focusSynthRef.current = new Tone.Synth().toDestination();
+    breakSynthRef.current = new Tone.Synth().toDestination();
+    longBreakSynthRef.current = new Tone.Synth().toDestination();
+    completeSynthRef.current = new Tone.PolySynth(Tone.Synth).toDestination(); // PolySynth for chords
+    skippedSynthRef.current = new Tone.Synth().toDestination();
+    pausedSynthRef.current = new Tone.Synth().toDestination();
+    startedSynthRef.current = new Tone.Synth().toDestination();
+    addedSynthRef.current = new Tone.Synth().toDestination();
+    resetSynthRef.current = new Tone.Synth().toDestination();
+
+    return () => {
+      // Dispose synths on component unmount
+      focusSynthRef.current?.dispose();
+      breakSynthRef.current?.dispose();
+      longBreakSynthRef.current?.dispose();
+      completeSynthRef.current?.dispose();
+      skippedSynthRef.current?.dispose();
+      pausedSynthRef.current?.dispose();
+      startedSynthRef.current?.dispose();
+      addedSynthRef.current?.dispose();
+      resetSynthRef.current?.dispose();
+    };
   }, []);
+
+  // Function to play sounds based on notification type
+  const playSound = useCallback(
+    (type) => {
+      if (!soundEnabled) return;
+
+      switch (type) {
+        case "focus-ended":
+          focusSynthRef.current.triggerAttackRelease("C4", "8n"); // Middle C, eighth note
+          break;
+        case "short-break-ended":
+          breakSynthRef.current.triggerAttackRelease("E4", "8n"); // E above middle C
+          break;
+        case "long-break-ended":
+          longBreakSynthRef.current.triggerAttackRelease("G4", "4n"); // G above middle C, quarter note
+          break;
+        case "completed":
+        case "all-tasks-completed":
+          completeSynthRef.current.triggerAttackRelease(
+            ["C5", "E5", "G5"],
+            "4n"
+          ); // C major chord
+          break;
+        case "skipped":
+          skippedSynthRef.current.triggerAttackRelease("C3", "16n"); // Low C, sixteenth note
+          break;
+        case "paused":
+          pausedSynthRef.current.triggerAttackRelease("A3", "8n"); // A below middle C
+          break;
+        case "started":
+        case "resumed":
+          startedSynthRef.current.triggerAttackRelease("C4", "16n"); // Middle C, sixteenth note
+          break;
+        case "added":
+          addedSynthRef.current.triggerAttackRelease("D4", "16n"); // D above middle C
+          break;
+        case "reset":
+          resetSynthRef.current.triggerAttackRelease("C2", "8n"); // Very low C
+          break;
+        default:
+          // No sound for other types
+          break;
+      }
+    },
+    [soundEnabled]
+  );
+
+  // Function to show notifications
+  const showNotification = useCallback(
+    (message, type) => {
+      setNotification({ message, type });
+      playSound(type); // Play sound when notification is shown
+    },
+    [playSound]
+  );
 
   // Function to clear notification
   const clearNotification = useCallback(() => {
@@ -382,6 +481,11 @@ function App() {
       interTaskIntervalDuration.toString()
     );
   }, [interTaskIntervalDuration]);
+
+  // Effect to save sound enabled preference to localStorage
+  useEffect(() => {
+    localStorage.setItem("soundEnabled", soundEnabled.toString());
+  }, [soundEnabled]);
 
   // Durations for Pomodoro cycles in seconds (default values)
   const DEFAULT_POMODORO_FOCUS_DURATION = 25 * 60; // 25 minutes focus
@@ -1380,6 +1484,30 @@ function App() {
                   translationKey="interTaskIntervalSetting"
                   icon="⏱️" // Clock icon for duration
                 />
+              </div>
+
+              {/* Enable Sound Notifications Toggle */}
+              <div className="mb-4 sm:mb-6 flex items-center justify-between">
+                <label
+                  className={`block text-base sm:text-lg font-semibold ${
+                    darkMode ? "text-gray-300" : "text-gray-700"
+                  }`}
+                >
+                  {translations[language].enableSoundNotifications}
+                </label>
+                <label
+                  htmlFor="soundToggle"
+                  className="relative inline-flex items-center cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    id="soundToggle"
+                    className="sr-only peer"
+                    checked={soundEnabled}
+                    onChange={(e) => setSoundEnabled(e.target.checked)}
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+                </label>
               </div>
 
               {/* Save/Close button - already handled by direct state updates and close button */}
