@@ -462,7 +462,7 @@ function App() {
         timerWorkerRef.current = null;
       }
     };
-  }, []); // Executa apenas uma vez no montagem do componente
+  }, [timerWorkerCode]); // Adicionado timerWorkerCode às dependências
 
   // Initialize Tone.js synths ONLY WHEN audio context is started
   useEffect(() => {
@@ -701,7 +701,7 @@ function App() {
     ]
   );
 
-  // Function to handle the end of a timer (task or Pomodoro phase)
+  // eslint-disable-next-line react-hooks/exhaustive-deps, no-unused-vars
   const handleTimerEnd = useCallback(() => {
     // The timer is already cleared by the useEffect when prevTime <= 1
     // This function focuses on setting the next state
@@ -862,6 +862,31 @@ function App() {
     DEFAULT_POMODORO_LONG_BREAK_DURATION,
     interTaskIntervalDuration,
     findNextTaskInSequence,
+  ]);
+
+  // Effect to call handleTimerEnd when timeLeft or intervalTimeLeft reaches 0
+  useEffect(() => {
+    if (
+      timerRunning &&
+      timeLeft <= 0 &&
+      !isIntervalRunning &&
+      currentTaskId !== null
+    ) {
+      // Only call handleTimerEnd if timeLeft has truly reached 0 for a task
+      // and the timer was running, and it's not an interval.
+      handleTimerEnd();
+    } else if (isIntervalRunning && intervalTimeLeft <= 0) {
+      // Only call handleTimerEnd if intervalTimeLeft has truly reached 0
+      // and the interval was running.
+      handleTimerEnd();
+    }
+  }, [
+    timeLeft,
+    intervalTimeLeft,
+    timerRunning,
+    isIntervalRunning,
+    handleTimerEnd,
+    currentTaskId,
   ]);
 
   // Função para pausar o timer
