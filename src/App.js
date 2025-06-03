@@ -147,7 +147,7 @@ const translations = {
     interTaskBreakEnded: "Intervalle entre les tâches terminé !",
     taskSkipped: "Tâche sautée !",
     interTaskBreakSkipped: "Intervalle entre les tâches sauté !",
-    pomodoroPhaseSkipped: "Phase Pomodoro {phase} sautée !",
+    pomodoroPhaseSkipped: "Fase Pomodoro {phase} sautée !",
     taskReset: "Tâche réinitialisée !",
     allTasksReset: "Toutes les tâches réinitialisées !",
     timerResumed: "Minuteur repris !",
@@ -2254,7 +2254,7 @@ function App() {
                     <div className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 p-0.5 sm:p-1 bg-green-500 rounded-full shadow-md">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        className="h-3 w-3 sm:h-4 sm:w-4 text-white"
+                        className="h-3 w-3 sm:h-4 sm:w-4"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"

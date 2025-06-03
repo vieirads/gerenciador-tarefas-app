@@ -2,8 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Você pode adicionar estilos globais personalizados aqui, se necessário */
-/* Por exemplo, para garantir que o corpo ocupe a altura total da tela */
-html, body, #root {
-  height: 100%;
+/* Você pode adicionar outros estilos globais aqui, se necessário */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
 }
