@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import * as Tone from "tone"; // Import Tone.js
 
-const timerWorker = new Worker("/timerWorker.js");
-
 // Translations object for i18n
 const translations = {
   en: {
@@ -706,7 +704,7 @@ function App() {
                 nextTime = 0; // No time for idle state
 
                 // After a long Pomodoro break, try to start the next task in sequence
-                const nextTaskInSequence = tasks.find(
+                const nextTaskInSequence = tasks.filter(
                   (task) => !task.completed && task.id !== currentTaskId
                 );
                 if (nextTaskInSequence) {
