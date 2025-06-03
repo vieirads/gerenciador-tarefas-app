@@ -1,50 +1,22 @@
-// public/timerWorker.js
+// src/timerWorker.js
 let timerInterval;
-let currentRemainingTime = 0;
-let currentTimerType = "idle"; // 'task', 'interval'
 
-// O worker escuta mensagens do thread principal
+// O Web Worker recebe mensagens do thread principal
 self.onmessage = function (e) {
-  const { type, timeLeft, isInterval } = e.data;
+  const { command, delay } = e.data; // 'command' pode ser 'start' ou 'stop'
 
-  if (type === "start") {
-    // Limpa qualquer intervalo existente para evitar duplicação
-    clearInterval(timerInterval);
-    currentRemainingTime = timeLeft;
-    currentTimerType = isInterval ? "interval" : "task";
-
-    // Inicia o intervalo do timer
+  if (command === "start") {
+    // Se já houver um intervalo, limpa-o para evitar múltiplos timers
+    if (timerInterval) {
+      clearInterval(timerInterval);
+    }
+    // Inicia um novo intervalo que envia uma mensagem 'tick' a cada 'delay' ms
     timerInterval = setInterval(() => {
-      currentRemainingTime--;
-      if (currentRemainingTime <= 0) {
-        // Se o tempo acabar, limpa o intervalo e notifica o thread principal
-        clearInterval(timerInterval);
-        self.postMessage({ type: "ended", timerType: currentTimerType });
-      } else {
-        // A cada segundo, notifica o thread principal com o tempo restante
-        self.postMessage({
-          type: "tick",
-          remainingTime: currentRemainingTime,
-          timerType: currentTimerType,
-        });
-      }
-    }, 1000); // Atualiza a cada segundo
-  } else if (type === "pause") {
-    // Pausa o timer limpando o intervalo
+      self.postMessage("tick"); // Envia uma mensagem de volta ao thread principal
+    }, delay);
+  } else if (command === "stop") {
+    // Limpa o intervalo quando o comando é 'stop'
     clearInterval(timerInterval);
-  } else if (type === "reset") {
-    // Reseta o timer limpando o intervalo e redefinindo as variáveis
-    clearInterval(timerInterval);
-    currentRemainingTime = 0;
-    currentTimerType = "idle";
-  } else if (type === "skip") {
-    // Simula o fim do timer para a função de pular fase
-    clearInterval(timerInterval);
-    self.postMessage({ type: "ended", timerType: currentTimerType });
+    timerInterval = null;
   }
-};
-
-// Lida com o encerramento do worker
-self.onclose = function () {
-  clearInterval(timerInterval);
 };

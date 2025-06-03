@@ -31,10 +31,10 @@ const translations = {
     resetAll: "Reset All",
     tasks: "Tasks",
     noTasksAdded: "No tasks added yet.",
-    taskCompleted: "Task completed!",
-    focusSessionEnded: "Focus session ended!",
-    shortBreakEnded: "Short break ended!",
-    longBreakEnded: "Long break ended!",
+    taskCompleted: "Task completed! Time for a new challenge.",
+    focusSessionEnded: "Focus session ended! Time for a break.",
+    shortBreakEnded: "Short break ended! Back to focus.",
+    longBreakEnded: "Long break ended! Well deserved rest.",
     interTaskBreakEnded: "Inter-task break ended!",
     taskSkipped: "Task skipped!",
     interTaskBreakSkipped: "Inter-task break skipped!",
@@ -56,6 +56,7 @@ const translations = {
     longBreak: "long break", // Added for translation in skip message
     allTasksCompletedNotification: "All tasks completed! Great job!", // New notification message
     enableSoundNotifications: "Enable Sound Notifications", // New translation
+    taskStartTimeLabel: "Task start time", // New translation for start time label
   },
   "pt-BR": {
     taskManager: "Gerenciador de Tarefas",
@@ -85,10 +86,10 @@ const translations = {
     resetAll: "Redefinir Tudo",
     tasks: "Tarefas",
     noTasksAdded: "Nenhuma tarefa adicionada ainda.",
-    taskCompleted: "Tarefa concluída!",
-    focusSessionEnded: "Sessão de foco encerrada!",
-    shortBreakEnded: "Pausa curta encerrada!",
-    longBreakEnded: "Pausa longa encerrada!",
+    taskCompleted: "Tarefa concluída! Hora de um novo desafio.",
+    focusSessionEnded: "Sessão de foco encerrada! Hora de uma pausa.",
+    shortBreakEnded: "Pausa curta encerrada! De volta ao foco.",
+    longBreakEnded: "Pausa longa encerrada! Descanso merecido.",
     interTaskBreakEnded: "Intervalo entre tarefas encerrado!",
     taskSkipped: "Tarefa pulada!",
     interTaskBreakSkipped: "Intervalo entre tarefas pulado!",
@@ -99,7 +100,7 @@ const translations = {
     timerStarted: "Cronômetro iniciado!",
     timerPaused: "Cronômetro pausado!",
     taskAdded: "Tarefa adicionada!",
-    options: "Opções",
+    options: "Opcões",
     language: "Idioma",
     interTaskIntervalSetting: "Intervalo Entre Tarefas (minutos)",
     saveSettings: "Salvar Configurações",
@@ -111,6 +112,7 @@ const translations = {
     allTasksCompletedNotification:
       "Todas as tarefas foram concluídas! Ótimo trabalho!", // New notification message
     enableSoundNotifications: "Habilitar Sons de Notificação", // New translation
+    taskStartTimeLabel: "Início das tarefas", // New translation for start time label
   },
   fr: {
     taskManager: "Gestionnaire de Tâches",
@@ -140,10 +142,10 @@ const translations = {
     resetAll: "Tout réinitialiser",
     tasks: "Tâches",
     noTasksAdded: "Aucune tâche ajoutée pour le moment.",
-    taskCompleted: "Tâche terminée !",
-    focusSessionEnded: "Session de focus terminée !",
-    shortBreakEnded: "Courte pause terminée !",
-    longBreakEnded: "Longue pause terminée !",
+    taskCompleted: "Tâche terminée ! Il est temps de relever un nouveau défi.",
+    focusSessionEnded: "Session de focus terminée ! C'est l'heure de la pause.",
+    shortBreakEnded: "Courte pause terminée ! Retour au focus.",
+    longBreakEnded: "Longue pause terminée ! Repos bien mérité.",
     interTaskBreakEnded: "Intervalle entre les tâches terminé !",
     taskSkipped: "Tâche sautée !",
     interTaskBreakSkipped: "Intervalle entre les tâches sauté !",
@@ -164,8 +166,9 @@ const translations = {
     shortBreak: "courte pause", // Added for translation in skip message
     longBreak: "longue pause", // Added for translation in skip message
     allTasksCompletedNotification:
-      "Toutes les tâches sont terminées ! Bon trabalho !", // New notification message
+      "Toutes les tarefas sont terminadas ! Bon trabalho !", // New notification message
     enableSoundNotifications: "Activer les sons de notification", // New translation
+    taskStartTimeLabel: "Heure de début de la tâche", // New translation for start time label
   },
 };
 
@@ -292,8 +295,23 @@ const Notification = ({ message, type, onClose, darkMode }) => {
   );
 };
 
+// Helper function to format total time in HH:MM
+const formatTotalTime = (totalSeconds) => {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  return `${hours.toString().padStart(2, "0")}:${minutes
+    .toString()
+    .padStart(2, "0")}`;
+};
+
 // Main application component
 function App() {
+  // Durations for Pomodoro cycles in seconds (default values)
+  const DEFAULT_POMODORO_FOCUS_DURATION = 25 * 60; // 25 minutes focus
+  const DEFAULT_POMODORO_SHORT_BREAK_DURATION = 5 * 60; // 5 minutes short break
+  const DEFAULT_POMODORO_LONG_BREAK_DURATION = 15 * 60; // 15 minutes long break
+  // INTER_TASK_INTERVAL_DURATION is now a state: interTaskIntervalDuration * 60
+
   // States to manage tasks, timer, and Pomodoro mode
   const [tasks, setTasks] = useState([]); // List of tasks
   const [currentTaskId, setCurrentTaskId] = useState(null); // ID of the current running task
@@ -301,7 +319,7 @@ function App() {
   const [timeLeft, setTimeLeft] = useState(0); // Time left in seconds
   const [pomodoroState, setPomodoroState] = useState("idle"); // 'idle', 'focus', 'shortBreak', 'longBreak'
   const [pomodoroCount, setPomodoroCount] = useState(0); // Counter for completed Pomodoro cycles (completed focus sessions)
-  const [isIntervalRunning, setIsIntervalRunning] = useState(0); // Indicates if the 5-minute interval is active
+  const [isIntervalRunning, setIsIntervalRunning] = useState(false); // Indicates if the 5-minute interval is active (changed to boolean)
   const [intervalTimeLeft, setIntervalTimeLeft] = useState(0); // Time left for the 5-minute interval
   const [taskName, setTaskName] = useState(""); // Name of the new task
   const [taskMode, setTaskMode] = useState("time"); // Mode of the new task: 'time' or 'pomodoro'
@@ -316,16 +334,14 @@ function App() {
   const [customLongBreakDurationInput, setCustomLongBreakDurationInput] =
     useState(15); // Long break duration in minutes (for input)
 
-  const timerRef = useRef(null); // Reference for the main timer's setInterval
-  const intervalTimerRef = useRef(null); // Reference for the interval timer's setInterval
-  const draggedItem = useRef(null); // Reference for the item being dragged
-  const dragOverItem = useRef(null); // Reference for the item being dragged over
   const progressCircleRef = useRef(null); // Reference for the SVG progress circle
 
   // New state for total global elapsed time
   const [totalGlobalElapsedTime, setTotalGlobalElapsedTime] = useState(0);
   // New state for total skipped time
   const [skippedTime, setSkippedTime] = useState(0);
+  // Novo estado para a hora de início da tarefa
+  const [firstTaskStartTime, setFirstTaskStartTime] = useState(null); // Changed to firstTaskStartTime
 
   // Dark mode state
   const [darkMode, setDarkMode] = useState(() => {
@@ -371,13 +387,91 @@ function App() {
   const addedSynthRef = useRef(null);
   const resetSynthRef = useRef(null);
 
-  // Initialize Tone.js synths on component mount
-  useEffect(() => {
-    Tone.start(); // Start Tone.js audio context
+  // New state to control if audio context has been started
+  const [isAudioContextStarted, setIsAudioContextStarted] = useState(false);
 
+  // Ref for the Web Worker
+  const timerWorkerRef = useRef(null);
+
+  // Drag and drop functions
+  const draggedItem = useRef(null);
+  const dragOverItem = useRef(null);
+
+  // Define the Web Worker code as a string
+  const timerWorkerCode = `
+    let timerInterval;
+    self.onmessage = function(e) {
+      if (e.data.command === 'start') {
+        const delay = e.data.delay || 1000;
+        if (timerInterval) {
+          clearInterval(timerInterval);
+        }
+        timerInterval = setInterval(() => {
+          self.postMessage('tick');
+        }, delay);
+      } else if (e.data.command === 'stop') {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    };
+    self.onclose = function() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    };
+  `;
+
+  // Initialize Web Worker on component mount
+  useEffect(() => {
+    // Cria uma nova instância do Web Worker a partir do código em string
+    const blob = new Blob([timerWorkerCode], {
+      type: "application/javascript",
+    });
+    const workerUrl = URL.createObjectURL(blob);
+    timerWorkerRef.current = new Worker(workerUrl);
+
+    // Escuta mensagens do Web Worker
+    timerWorkerRef.current.onmessage = function (e) {
+      if (e.data === "tick") {
+        // Atualiza o tempo restante e o tempo global decorrido a cada 'tick'
+        setTimeLeft((prevTime) => {
+          if (prevTime <= 1) {
+            // O timer está prestes a terminar, a lógica de `handleTimerEnd` será chamada
+            // no próximo ciclo de renderização ou quando o worker parar de enviar ticks
+            return 0;
+          }
+          return prevTime - 1;
+        });
+        setIntervalTimeLeft((prevTime) => {
+          if (prevTime <= 1) {
+            return 0;
+          }
+          return prevTime - 1;
+        });
+        setTotalGlobalElapsedTime((prev) => prev + 1);
+      }
+    };
+
+    // Limpa o Web Worker quando o componente é desmontado
+    return () => {
+      if (timerWorkerRef.current) {
+        timerWorkerRef.current.postMessage({ command: "stop" }); // Envia comando para parar o worker
+        timerWorkerRef.current.terminate(); // Termina o worker
+        URL.revokeObjectURL(workerUrl); // Libera o URL do objeto
+        timerWorkerRef.current = null;
+      }
+    };
+  }, []); // Executa apenas uma vez no montagem do componente
+
+  // Initialize Tone.js synths ONLY WHEN audio context is started
+  useEffect(() => {
+    if (!isAudioContextStarted || !Tone) return; // Only initialize if context is started and Tone is available
+
+    console.log("Initializing Tone.js synths...");
     focusSynthRef.current = new Tone.Synth().toDestination();
     breakSynthRef.current = new Tone.Synth().toDestination();
-    longBreakSynthRef.current = new Tone.Synth().toDestination();
+    longBreakSynthRef.current = new Tone.PolySynth(Tone.Synth).toDestination(); // PolySynth for chords
     completeSynthRef.current = new Tone.PolySynth(Tone.Synth).toDestination(); // PolySynth for chords
     skippedSynthRef.current = new Tone.Synth().toDestination();
     pausedSynthRef.current = new Tone.Synth().toDestination();
@@ -397,52 +491,91 @@ function App() {
       addedSynthRef.current?.dispose();
       resetSynthRef.current?.dispose();
     };
-  }, []);
+  }, [isAudioContextStarted]); // Depends on isAudioContextStarted
 
   // Function to play sounds based on notification type
   const playSound = useCallback(
     (type) => {
-      if (!soundEnabled) return;
+      if (!soundEnabled || !isAudioContextStarted || !Tone) return; // Only play if sound is enabled and audio context started
+
+      // Use Tone.now() as a base time, and add a small, unique offset for each sound
+      // This helps prevent "Start time must be strictly greater than previous start time" errors
+      // when multiple sounds are triggered very rapidly.
+      const now = Tone.now();
+      const delay = 0.01; // Small delay in seconds
 
       switch (type) {
         case "focus-ended":
-          focusSynthRef.current.triggerAttackRelease("C4", "8n"); // Middle C, eighth note
+          focusSynthRef.current.triggerAttackRelease(
+            "C4",
+            "8n",
+            now + delay * 1
+          );
           break;
         case "short-break-ended":
-          breakSynthRef.current.triggerAttackRelease("E4", "8n"); // E above middle C
+          breakSynthRef.current.triggerAttackRelease(
+            "E4",
+            "8n",
+            now + delay * 2
+          );
           break;
         case "long-break-ended":
-          longBreakSynthRef.current.triggerAttackRelease("G4", "4n"); // G above middle C, quarter note
+          longBreakSynthRef.current.triggerAttackRelease(
+            ["C5", "E5", "G5"],
+            "4n",
+            now + delay * 3
+          );
           break;
         case "completed":
         case "all-tasks-completed":
           completeSynthRef.current.triggerAttackRelease(
             ["C5", "E5", "G5"],
-            "4n"
-          ); // C major chord
+            "4n",
+            now + delay * 4
+          );
           break;
         case "skipped":
-          skippedSynthRef.current.triggerAttackRelease("C3", "16n"); // Low C, sixteenth note
+          skippedSynthRef.current.triggerAttackRelease(
+            "C3",
+            "16n",
+            now + delay * 5
+          );
           break;
         case "paused":
-          pausedSynthRef.current.triggerAttackRelease("A3", "8n"); // A below middle C
+          pausedSynthRef.current.triggerAttackRelease(
+            "A3",
+            "8n",
+            now + delay * 6
+          );
           break;
         case "started":
         case "resumed":
-          startedSynthRef.current.triggerAttackRelease("C4", "16n"); // Middle C, sixteenth note
+          startedSynthRef.current.triggerAttackRelease(
+            "C4",
+            "16n",
+            now + delay * 7
+          );
           break;
         case "added":
-          addedSynthRef.current.triggerAttackRelease("D4", "16n"); // D above middle C
+          addedSynthRef.current.triggerAttackRelease(
+            "D4",
+            "16n",
+            now + delay * 8
+          );
           break;
         case "reset":
-          resetSynthRef.current.triggerAttackRelease("C2", "8n"); // Very low C
+          resetSynthRef.current.triggerAttackRelease(
+            "C2",
+            "8n",
+            now + delay * 9
+          );
           break;
         default:
           // No sound for other types
           break;
       }
     },
-    [soundEnabled]
+    [soundEnabled, isAudioContextStarted]
   );
 
   // Function to show notifications
@@ -459,539 +592,547 @@ function App() {
     setNotification({ message: "", type: "" });
   }, []);
 
-  // Effect to save dark mode preference to localStorage
-  useEffect(() => {
-    localStorage.setItem("darkMode", darkMode);
-    if (darkMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
+  // Helper function to find the next uncompleted task in the list, considering the current task's position
+  const findNextTaskInSequence = useCallback(
+    (currentTasks, currentActiveTaskId) => {
+      let startIndex = 0;
+      if (currentActiveTaskId) {
+        const currentTaskIndex = currentTasks.findIndex(
+          (task) => task.id === currentActiveTaskId
+        );
+        if (currentTaskIndex !== -1) {
+          startIndex = currentTaskIndex + 1;
+        }
+      }
+
+      // First, try to find the next uncompleted task *after* the current one in the original list
+      for (let i = startIndex; i < currentTasks.length; i++) {
+        if (!currentTasks[i].completed) {
+          return currentTasks[i];
+        }
+      }
+
+      // If no uncompleted tasks found after the current one,
+      // then look for the first uncompleted task from the beginning of the list
+      for (let i = 0; i < startIndex; i++) {
+        if (!currentTasks[i].completed) {
+          return currentTasks[i];
+        }
+      }
+
+      // If no uncompleted tasks are found anywhere
+      return null;
+    },
+    []
+  );
+
+  // Function to start a specific task (or an interval)
+  const startTimerOrInterval = useCallback(
+    (targetTask = null, isResuming = false) => {
+      // Clear any existing timer by sending a stop command to the worker
+      if (timerWorkerRef.current) {
+        timerWorkerRef.current.postMessage({ command: "stop" });
+      }
+
+      setTimerRunning(false); // Reset main timer state
+      setIsIntervalRunning(false); // Reset interval state
+
+      if (targetTask) {
+        // Starting/resuming a task
+        setCurrentTaskId(targetTask.id);
+        // Set firstTaskStartTime only if it's the very first task starting
+        if (firstTaskStartTime === null) {
+          setFirstTaskStartTime(Date.now());
+        }
+
+        let initialTime;
+        let newPomodoroState = "idle";
+        let newPomodoroCount = 0;
+
+        if (targetTask.mode === "time") {
+          initialTime = isResuming ? timeLeft : targetTask.duration;
+        } else if (targetTask.mode === "pomodoro") {
+          if (isResuming) {
+            initialTime = timeLeft;
+            newPomodoroState = pomodoroState;
+            newPomodoroCount = pomodoroCount;
+          } else {
+            initialTime =
+              targetTask.pomodoroFocusDuration ||
+              DEFAULT_POMODORO_FOCUS_DURATION;
+            newPomodoroState = "focus";
+            newPomodoroCount = 0;
+          }
+        }
+        setTimeLeft(initialTime);
+        setPomodoroState(newPomodoroState);
+        setPomodoroCount(newPomodoroCount);
+        setTimerRunning(true); // ONLY set timerRunning here
+        timerWorkerRef.current.postMessage({ command: "start", delay: 1000 }); // Start worker for task
+      } else {
+        // Starting an inter-task interval
+        setCurrentTaskId(null);
+        const initialIntervalTime = isResuming
+          ? intervalTimeLeft
+          : interTaskIntervalDuration * 60;
+        setIntervalTimeLeft(initialIntervalTime);
+        setTimeLeft(0); // Task time is irrelevant during interval
+        setPomodoroState("idle"); // Pomodoro state is idle during interval
+        setIsIntervalRunning(true); // ONLY set isIntervalRunning here
+        timerWorkerRef.current.postMessage({ command: "start", delay: 1000 }); // Start worker for interval
+      }
+      showNotification(
+        isResuming
+          ? translations[language].timerResumed
+          : translations[language].timerStarted,
+        "started"
+      );
+    },
+    [
+      timeLeft,
+      pomodoroState,
+      pomodoroCount,
+      intervalTimeLeft,
+      interTaskIntervalDuration,
+      showNotification,
+      language,
+      DEFAULT_POMODORO_FOCUS_DURATION,
+      firstTaskStartTime,
+    ]
+  );
+
+  // Function to handle the end of a timer (task or Pomodoro phase)
+  const handleTimerEnd = useCallback(() => {
+    // The timer is already cleared by the useEffect when prevTime <= 1
+    // This function focuses on setting the next state
+
+    let tempUpdatedTasks = [...tasks];
+    let shouldStartNextPhase = false; // Flag to indicate if a new phase should start immediately
+
+    if (isIntervalRunning) {
+      showNotification(translations[language].interTaskBreakEnded, "completed");
+      setIsIntervalRunning(false);
+      setTimerRunning(false); // Ensure main timer is off
+      timerWorkerRef.current.postMessage({ command: "stop" }); // Stop worker
+      const nextTaskToStart = findNextTaskInSequence(
+        tempUpdatedTasks,
+        currentTaskId
+      ); // Use new function
+      if (nextTaskToStart) {
+        startTimerOrInterval(nextTaskToStart, false); // Start the next task
+      } else {
+        // All tasks completed, handle final state
+        setCurrentTaskId(null);
+        setTimeLeft(0);
+        setPomodoroState("idle");
+        showNotification(
+          translations[language].allTasksCompletedNotification,
+          "all-tasks-completed"
+        );
+      }
+    } else if (currentTaskId) {
+      const currentTask = tempUpdatedTasks.find(
+        (task) => task.id === currentTaskId
+      );
+      if (!currentTask) return;
+
+      if (currentTask.mode === "time") {
+        // Mark as completed naturally (not skipped)
+        tempUpdatedTasks = tempUpdatedTasks.map((task) =>
+          task.id === currentTaskId
+            ? { ...task, completed: true, skipped: false }
+            : task
+        );
+        showNotification(translations[language].taskCompleted, "completed");
+
+        const nextTaskToStart = findNextTaskInSequence(
+          tempUpdatedTasks,
+          currentTaskId
+        ); // Use new function
+        if (nextTaskToStart) {
+          setIsIntervalRunning(true);
+          setIntervalTimeLeft(interTaskIntervalDuration * 60);
+          setTimerRunning(false); // Ensure main timer is off
+          timerWorkerRef.current.postMessage({ command: "start", delay: 1000 }); // Start worker for interval
+        } else {
+          // All tasks completed, handle final state
+          setCurrentTaskId(null);
+          setTimeLeft(0);
+          setPomodoroState("idle");
+          setTimerRunning(false);
+          timerWorkerRef.current.postMessage({ command: "stop" }); // Stop worker
+          showNotification(
+            translations[language].allTasksCompletedNotification,
+            "all-tasks-completed"
+          );
+        }
+      } else if (currentTask.mode === "pomodoro") {
+        let newPomodoroCount = pomodoroCount;
+        const focusDuration =
+          currentTask.pomodoroFocusDuration || DEFAULT_POMODORO_FOCUS_DURATION;
+        const shortBreakDuration =
+          currentTask.pomodoroShortBreakDuration ||
+          DEFAULT_POMODORO_SHORT_BREAK_DURATION;
+        const longBreakDuration =
+          currentTask.pomodoroLongBreakDuration ||
+          DEFAULT_POMODORO_LONG_BREAK_DURATION;
+
+        if (pomodoroState === "focus") {
+          newPomodoroCount++;
+          showNotification(
+            translations[language].focusSessionEnded,
+            "focus-ended"
+          );
+          if (newPomodoroCount % currentTask.pomodoroFocusSessions === 0) {
+            setTimeLeft(longBreakDuration);
+            setPomodoroState("longBreak");
+          } else {
+            setTimeLeft(shortBreakDuration);
+            setPomodoroState("shortBreak");
+          }
+          setPomodoroCount(newPomodoroCount);
+          shouldStartNextPhase = true; // Indicate that the timer should continue
+        } else if (pomodoroState === "shortBreak") {
+          showNotification(
+            translations[language].shortBreakEnded,
+            "short-break-ended"
+          );
+          setTimeLeft(focusDuration);
+          setPomodoroState("focus");
+          shouldStartNextPhase = true; // Indicate that the timer should continue
+        } else if (pomodoroState === "longBreak") {
+          // Mark as completed naturally (not skipped)
+          tempUpdatedTasks = tempUpdatedTasks.map((task) =>
+            task.id === currentTaskId
+              ? { ...task, completed: true, skipped: false }
+              : task
+          );
+          showNotification(
+            translations[language].longBreakEnded,
+            "long-break-ended"
+          );
+          setPomodoroCount(0); // Reset for next task's Pomodoro
+          setPomodoroState("idle"); // Set to idle as cycle ends
+
+          // After a long break, find the next task directly, without inter-task interval
+          const nextTaskToStart = findNextTaskInSequence(
+            tempUpdatedTasks,
+            currentTaskId
+          ); // Use new function
+          if (nextTaskToStart) {
+            startTimerOrInterval(nextTaskToStart, false); // Start the next task
+          } else {
+            // All tasks completed, handle final state
+            setCurrentTaskId(null);
+            setTimeLeft(0);
+            setPomodoroState("idle");
+            setTimerRunning(false); // Ensure main timer is off
+            timerWorkerRef.current.postMessage({ command: "stop" }); // Stop worker
+            showNotification(
+              translations[language].allTasksCompletedNotification,
+              "all-tasks-completed"
+            );
+          }
+          setTasks(tempUpdatedTasks); // Update tasks state
+          return; // Exit as next task/stop is handled
+        }
+      }
     }
-  }, [darkMode]);
 
-  // Effect to save language preference to localStorage
-  useEffect(() => {
-    localStorage.setItem("language", language);
-  }, [language]);
-
-  // Effect to save inter-task interval preference to localStorage
-  useEffect(() => {
-    localStorage.setItem(
-      "interTaskInterval",
-      interTaskIntervalDuration.toString()
-    );
-  }, [interTaskIntervalDuration]);
-
-  // Effect to save sound enabled preference to localStorage
-  useEffect(() => {
-    localStorage.setItem("soundEnabled", soundEnabled.toString());
-  }, [soundEnabled]);
-
-  // Durations for Pomodoro cycles in seconds (default values)
-  const DEFAULT_POMODORO_FOCUS_DURATION = 25 * 60; // 25 minutes focus
-  const DEFAULT_POMODORO_SHORT_BREAK_DURATION = 5 * 60; // 5 minutes short break
-  const DEFAULT_POMODORO_LONG_BREAK_DURATION = 15 * 60; // 15 minutes long break
-  // INTER_TASK_INTERVAL_DURATION is now a state: interTaskIntervalDuration * 60
-
-  // Function to format total time in HH:MM
-  const formatTotalTime = (totalSeconds) => {
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    if (hours > 0) {
-      return `${hours}h ${minutes.toString().padStart(2, "0")}min`;
+    setTasks(tempUpdatedTasks); // Ensure tasks state is updated
+    // This single check at the end will start the timer if a new phase was set
+    if (shouldStartNextPhase && !isIntervalRunning) {
+      // Only start if it's a Pomodoro phase transition and not an interval
+      setTimerRunning(true);
+      timerWorkerRef.current.postMessage({ command: "start", delay: 1000 }); // Start worker for task
     }
-    return `${minutes}min`;
-  };
+    // If it's an interval, setIsIntervalRunning(true) already handles it.
+    // If it's the end of a long break, the logic already handles starting the next task or stopping.
+  }, [
+    currentTaskId,
+    tasks,
+    pomodoroState,
+    pomodoroCount,
+    isIntervalRunning,
+    startTimerOrInterval,
+    showNotification,
+    language,
+    DEFAULT_POMODORO_FOCUS_DURATION,
+    DEFAULT_POMODORO_SHORT_BREAK_DURATION,
+    DEFAULT_POMODORO_LONG_BREAK_DURATION,
+    interTaskIntervalDuration,
+    findNextTaskInSequence,
+  ]);
 
-  // Function to add a new task
-  const addTask = (e) => {
-    e.preventDefault();
-    if (!taskName.trim()) return;
-
-    const newTask = {
-      id: Date.now(),
-      name: taskName,
-      mode: taskMode,
-      duration: taskMode === "time" ? parseInt(taskDuration, 10) * 60 : 0, // Convert minutes to seconds
-      pomodoroFocusSessions:
-        taskMode === "pomodoro" ? parseInt(pomodoroCustomFocusSessions, 10) : 0, // Save customizable number of focus sessions
-      // Save customizable Pomodoro durations in seconds
-      pomodoroFocusDuration:
-        taskMode === "pomodoro"
-          ? parseInt(customFocusDurationInput, 10) * 60
-          : 0,
-      pomodoroShortBreakDuration:
-        taskMode === "pomodoro"
-          ? parseInt(customShortBreakDurationInput, 10) * 60
-          : 0,
-      pomodoroLongBreakDuration:
-        taskMode === "pomodoro"
-          ? parseInt(customLongBreakDurationInput, 10) * 60
-          : 0,
-      completed: false,
-    };
-
-    setTasks([...tasks, newTask]);
-    setTaskName("");
-    setTaskDuration(30); // Reset to default 30 minutes after adding
-    showNotification(translations[language].taskAdded, "added");
-  };
-
-  // Function to delete a task
-  const deleteTask = (id) => {
-    setTasks(tasks.filter((task) => task.id !== id));
-    if (currentTaskId === id) {
-      resetTimer();
-      setCurrentTaskId(null);
-    }
-  };
-
-  // Function to mark a task as complete
-  const markTaskComplete = useCallback((id) => {
-    setTasks((prevTasks) =>
-      prevTasks.map((task) =>
-        task.id === id ? { ...task, completed: true } : task
-      )
-    );
-  }, []);
-
-  // Function to pause the main timer
+  // Função para pausar o timer
   const pauseTimer = useCallback(() => {
-    clearInterval(timerRef.current);
+    if (timerWorkerRef.current) {
+      timerWorkerRef.current.postMessage({ command: "stop" });
+    }
     setTimerRunning(false);
     showNotification(translations[language].timerPaused, "paused");
   }, [showNotification, language]);
 
-  // Function to reset the current task's timer (does not reset global times)
+  // Função para resetar o timer da tarefa atual (não reseta tempos globais)
   const resetTimer = useCallback(() => {
-    clearInterval(timerRef.current);
+    if (timerWorkerRef.current) {
+      timerWorkerRef.current.postMessage({ command: "stop" });
+    }
     setTimerRunning(false);
     setTimeLeft(0);
     setPomodoroState("idle");
     setPomodoroCount(0);
     setIsIntervalRunning(false);
-    clearInterval(intervalTimerRef.current);
     setIntervalTimeLeft(0);
     setCurrentTaskId(null); // Ensure no task is selected
+    // Do NOT reset firstTaskStartTime here, as it's meant to be the global start.
     showNotification(translations[language].taskReset, "reset");
   }, [showNotification, language]);
 
-  // Function to reset all times (global and current task)
+  // Função para resetar todos os tempos (globais e da tarefa atual)
   const resetAll = useCallback(() => {
     resetTimer(); // Reset current task and timer
     setTotalGlobalElapsedTime(0); // Reset global elapsed time
     setSkippedTime(0); // Reset skipped time
-    // Reset completion status of all tasks
+    setFirstTaskStartTime(null); // Reset first task start time
+    // Reset completion status and skipped status of all tasks
     setTasks((prevTasks) =>
-      prevTasks.map((task) => ({ ...task, completed: false }))
+      prevTasks.map((task) => ({ ...task, completed: false, skipped: false }))
     );
     showNotification(translations[language].allTasksReset, "reset");
   }, [resetTimer, showNotification, language]);
 
-  // Function to start a specific task
-  const startTask = useCallback(
-    (task) => {
-      // Do not call resetTimer here if you don't want global times to be reset
-      // Just clear the current timer and set the new task
-      clearInterval(timerRef.current);
-      clearInterval(intervalTimerRef.current);
-      setTimerRunning(false);
-      setIsIntervalRunning(false);
-      setTimeLeft(0); // Reset current task time
-      setPomodoroState("idle"); // Reset Pomodoro state for the new task
-      setPomodoroCount(0); // Reset Pomodoro counter for the new task
-
-      setCurrentTaskId(task.id);
-      if (task.mode === "time") {
-        setTimeLeft(task.duration);
-        setPomodoroState("idle");
-      } else if (task.mode === "pomodoro") {
-        // Use customizable focus duration of the task
-        setTimeLeft(
-          task.pomodoroFocusDuration || DEFAULT_POMODORO_FOCUS_DURATION
-        );
-        setPomodoroState("focus");
-        setPomodoroCount(0); // Reset Pomodoro counter for the new task
-      }
-      setTimerRunning(true);
-      showNotification(translations[language].timerStarted, "started");
-    },
-    [showNotification, language, DEFAULT_POMODORO_FOCUS_DURATION]
-  );
-
-  // Main effect for task timer (Free Time and Pomodoro)
-  useEffect(() => {
-    if (timerRunning && !isIntervalRunning) {
-      timerRef.current = setInterval(() => {
-        setTimeLeft((prevTime) => {
-          if (prevTime <= 1) {
-            clearInterval(timerRef.current);
-            setTimerRunning(false);
-
-            const currentTask = tasks.find((task) => task.id === currentTaskId);
-
-            if (currentTask && currentTask.mode === "time") {
-              markTaskComplete(currentTaskId);
-              showNotification(
-                translations[language].taskCompleted,
-                "completed"
-              );
-
-              // Check if there are any uncompleted tasks left after this one
-              const remainingUncompletedTasks = tasks.filter(
-                (task) => !task.completed && task.id !== currentTaskId
-              );
-
-              if (remainingUncompletedTasks.length > 0) {
-                setIsIntervalRunning(true);
-                setIntervalTimeLeft(interTaskIntervalDuration * 60);
-              } else {
-                // No more uncompleted tasks, stop everything
-                setCurrentTaskId(null);
-                setTimeLeft(0);
-                setPomodoroState("idle");
-                setTimerRunning(false); // Ensure main timer is off
-                clearInterval(timerRef.current);
-                clearInterval(intervalTimerRef.current); // Ensure interval timer is also off
-              }
-            } else if (currentTask && currentTask.mode === "pomodoro") {
-              let nextPomodoroState;
-              let nextTime;
-              let newPomodoroCount = pomodoroCount;
-
-              // Get customizable durations of the current task
-              const focusDuration =
-                currentTask.pomodoroFocusDuration ||
-                DEFAULT_POMODORO_FOCUS_DURATION;
-              const shortBreakDuration =
-                currentTask.pomodoroShortBreakDuration ||
-                DEFAULT_POMODORO_SHORT_BREAK_DURATION;
-              const longBreakDuration =
-                currentTask.pomodoroLongBreakDuration ||
-                DEFAULT_POMODORO_LONG_BREAK_DURATION;
-
-              if (pomodoroState === "focus") {
-                newPomodoroCount = pomodoroCount + 1; // Increment completed focus counter
-                showNotification(
-                  translations[language].focusSessionEnded,
-                  "focus-ended"
-                );
-                if (
-                  newPomodoroCount % currentTask.pomodoroFocusSessions ===
-                  0
-                ) {
-                  // If focus cycle completed
-                  nextPomodoroState = "longBreak";
-                  nextTime = longBreakDuration;
-                } else {
-                  nextPomodoroState = "shortBreak";
-                  nextTime = shortBreakDuration;
-                }
-              } else if (pomodoroState === "shortBreak") {
-                showNotification(
-                  translations[language].shortBreakEnded,
-                  "short-break-ended"
-                );
-                nextPomodoroState = "focus";
-                nextTime = focusDuration;
-              } else if (pomodoroState === "longBreak") {
-                markTaskComplete(currentTaskId);
-                showNotification(
-                  translations[language].longBreakEnded,
-                  "long-break-ended"
-                );
-                nextPomodoroState = "idle";
-                nextTime = 0; // No time for idle state
-
-                // After a long Pomodoro break, try to start the next task in sequence
-                const nextTaskInSequence = tasks.filter(
-                  (task) => !task.completed && task.id !== currentTaskId
-                );
-                if (nextTaskInSequence) {
-                  startTask(nextTaskInSequence);
-                } else {
-                  // If no more uncompleted tasks AFTER the current one,
-                  // check if there are ANY uncompleted tasks in the entire list (e.g., newly added ones)
-                  const firstUncompletedTaskOverall = tasks.find(
-                    (task) => !task.completed
-                  );
-                  if (firstUncompletedTaskOverall) {
-                    startTask(firstUncompletedTaskOverall);
-                  } else {
-                    setCurrentTaskId(null); // Truly no uncompleted tasks left
-                    setTimeLeft(0); // Ensure timer is reset if no tasks
-                    setPomodoroState("idle"); // Ensure state is idle
-                  }
-                }
-                return 0; // Reset time to 0 and don't set as running again
-              }
-
-              setPomodoroCount(newPomodoroCount);
-              setPomodoroState(nextPomodoroState);
-              setTimeLeft(nextTime);
-              if (nextPomodoroState !== "idle") {
-                // Only set as running if not end of cycle
-                setTimerRunning(true);
-              } else {
-                setTimerRunning(false); // Ensure timer stops if idle
-              }
-            }
-            return 0; // Reset time to 0 for a moment before the next state
-          }
-          return prevTime - 1;
-        });
-        setTotalGlobalElapsedTime((prev) => prev + 1); // Increment global elapsed time every second
-      }, 1000);
-    } else {
-      clearInterval(timerRef.current);
-    }
-    return () => clearInterval(timerRef.current);
-  }, [
-    timerRunning,
-    isIntervalRunning,
-    currentTaskId,
-    tasks,
-    pomodoroState,
-    pomodoroCount,
-    markTaskComplete,
-    startTask,
-    showNotification,
-    language,
-    interTaskIntervalDuration,
-    DEFAULT_POMODORO_FOCUS_DURATION,
-    DEFAULT_POMODORO_LONG_BREAK_DURATION,
-    DEFAULT_POMODORO_SHORT_BREAK_DURATION,
-  ]);
-
-  // Effect to manage the 5-minute interval timer between tasks
-  useEffect(() => {
-    if (isIntervalRunning) {
-      intervalTimerRef.current = setInterval(() => {
-        setIntervalTimeLeft((prevTime) => {
-          if (prevTime <= 1) {
-            clearInterval(intervalTimerRef.current);
-            setIsIntervalRunning(false);
-            showNotification(
-              translations[language].interTaskBreakEnded,
-              "completed"
-            ); // Notification for inter-task break end
-
-            // After inter-task interval, try to start the next task in sequence
-            const nextTaskInSequence = tasks
-              .filter((task) => !task.completed)
-              .find((task) => task.id !== currentTaskId); // Filter out current task if it was completed
-            if (nextTaskInSequence) {
-              startTask(nextTaskInSequence);
-            } else {
-              // If no more uncompleted tasks AFTER the current one,
-              // check if there are ANY uncompleted tasks in the entire list (e.g., newly added ones)
-              const firstUncompletedTaskOverall = tasks.find(
-                (task) => !task.completed
-              );
-              if (firstUncompletedTaskOverall) {
-                startTask(firstUncompletedTaskOverall);
-              } else {
-                setCurrentTaskId(null); // Truly no uncompleted tasks left
-                setTimeLeft(0); // Ensure timer is reset if no tasks
-                setPomodoroState("idle"); // Ensure state is idle
-              }
-            }
-            return 0;
-          }
-          return prevTime - 1;
-        });
-        setTotalGlobalElapsedTime((prev) => prev + 1); // Increment global elapsed time every second of the interval
-      }, 1000);
-    } else {
-      clearInterval(intervalTimerRef.current);
-    }
-    return () => clearInterval(intervalTimerRef.current);
-  }, [
-    isIntervalRunning,
-    tasks,
-    currentTaskId,
-    startTask,
-    showNotification,
-    language,
-    interTaskIntervalDuration,
-  ]);
-
   // Function to skip current phase
   const skipCurrentPhase = useCallback(() => {
-    clearInterval(timerRef.current);
-    clearInterval(intervalTimerRef.current);
-    setTimerRunning(false);
-    setIsIntervalRunning(false);
+    // Clear the active timer immediately by stopping the worker
+    if (timerWorkerRef.current) {
+      timerWorkerRef.current.postMessage({ command: "stop" });
+    }
+
+    setTimerRunning(false); // Stop the main timer
+    setIsIntervalRunning(false); // Stop the interval timer
 
     let timeToSkip = 0;
+    let tempUpdatedTasks = [...tasks];
+    let shouldStartNextPhase = false; // Flag to indicate if a new phase should start immediately
+
     if (isIntervalRunning) {
       timeToSkip = intervalTimeLeft;
+      setSkippedTime((prev) => prev + timeToSkip);
       showNotification(translations[language].interTaskBreakSkipped, "skipped");
-      // If in inter-task interval, skip to the next task
-      const nextTaskInSequence = tasks
-        .filter((task) => !task.completed)
-        .find((task) => task.id !== currentTaskId); // Filter out current task if it was completed
-      if (nextTaskInSequence) {
-        startTask(nextTaskInSequence);
+      const nextTaskToStart = findNextTaskInSequence(
+        tempUpdatedTasks,
+        currentTaskId
+      ); // Use new function
+      if (nextTaskToStart) {
+        startTimerOrInterval(nextTaskToStart, false);
       } else {
-        const firstUncompletedTaskOverall = tasks.find(
-          (task) => !task.completed
+        // All tasks completed, handle final state
+        setCurrentTaskId(null);
+        setTimeLeft(0);
+        setPomodoroState("idle");
+        showNotification(
+          translations[language].allTasksCompletedNotification,
+          "all-tasks-completed"
         );
-        if (firstUncompletedTaskOverall) {
-          startTask(firstUncompletedTaskOverall);
+      }
+    } else if (currentTaskId) {
+      const currentTask = tempUpdatedTasks.find(
+        (task) => task.id === currentTaskId
+      );
+      if (!currentTask) return;
+
+      timeToSkip = timeLeft;
+      setSkippedTime((prev) => prev + timeToSkip);
+
+      if (currentTask.mode === "time") {
+        // Mark as skipped
+        tempUpdatedTasks = tempUpdatedTasks.map((task) =>
+          task.id === currentTaskId
+            ? { ...task, completed: true, skipped: true }
+            : task
+        );
+        showNotification(translations[language].taskSkipped, "skipped");
+
+        const nextTaskToStart = findNextTaskInSequence(
+          tempUpdatedTasks,
+          currentTaskId
+        ); // Use new function
+        if (nextTaskToStart) {
+          setIsIntervalRunning(true);
+          setIntervalTimeLeft(interTaskIntervalDuration * 60);
+          setTimerRunning(false); // Ensure main timer is off
+          timerWorkerRef.current.postMessage({ command: "start", delay: 1000 }); // Start worker for interval
         } else {
+          // All tasks completed, handle final state
           setCurrentTaskId(null);
           setTimeLeft(0);
           setPomodoroState("idle");
-        }
-      }
-    } else if (currentTaskId) {
-      const currentTask = tasks.find((task) => task.id === currentTaskId);
-      if (currentTask) {
-        // Ensure currentTask exists
-        timeToSkip = timeLeft;
-        if (currentTask.mode === "time") {
-          showNotification(translations[language].taskSkipped, "skipped");
-          markTaskComplete(currentTaskId); // Mark as complete even if skipped
-
-          // Check if there are any uncompleted tasks left after this one
-          const remainingUncompletedTasks = tasks.filter(
-            (task) => !task.completed && task.id !== currentTaskId
+          setTimerRunning(false);
+          showNotification(
+            translations[language].allTasksCompletedNotification,
+            "all-tasks-completed"
           );
+        }
+      } else if (currentTask.mode === "pomodoro") {
+        let phaseName = "";
+        let newPomodoroCount = pomodoroCount;
 
-          if (remainingUncompletedTasks.length > 0) {
-            setIsIntervalRunning(true);
-            setIntervalTimeLeft(interTaskIntervalDuration * 60); // Use dynamic interval
+        const focusDuration =
+          currentTask.pomodoroFocusDuration || DEFAULT_POMODORO_FOCUS_DURATION;
+        const shortBreakDuration =
+          currentTask.pomodoroShortBreakDuration ||
+          DEFAULT_POMODORO_SHORT_BREAK_DURATION;
+        const longBreakDuration =
+          currentTask.pomodoroLongBreakDuration ||
+          DEFAULT_POMODORO_LONG_BREAK_DURATION;
+
+        if (pomodoroState === "focus") {
+          phaseName = translations[language].focus;
+          newPomodoroCount++;
+          if (newPomodoroCount % currentTask.pomodoroFocusSessions === 0) {
+            setTimeLeft(longBreakDuration);
+            setPomodoroState("longBreak");
           } else {
-            // No more uncompleted tasks, stop everything
+            setTimeLeft(shortBreakDuration);
+            setPomodoroState("shortBreak");
+          }
+          setPomodoroCount(newPomodoroCount);
+          shouldStartNextPhase = true;
+        } else if (pomodoroState === "shortBreak") {
+          phaseName = translations[language].shortBreak;
+          setTimeLeft(focusDuration);
+          setPomodoroState("focus");
+          shouldStartNextPhase = true;
+        } else if (pomodoroState === "longBreak") {
+          // Mark as skipped
+          tempUpdatedTasks = tempUpdatedTasks.map((task) =>
+            task.id === currentTaskId
+              ? { ...task, completed: true, skipped: true }
+              : task
+          );
+          showNotification(
+            translations[language].longBreakEnded,
+            "long-break-ended"
+          );
+          setPomodoroCount(0);
+          setPomodoroState("idle");
+
+          // After skipping a long break, find the next task directly, without inter-task interval
+          const nextTaskToStart = findNextTaskInSequence(
+            tempUpdatedTasks,
+            currentTaskId
+          ); // Use new function
+          if (nextTaskToStart) {
+            startTimerOrInterval(nextTaskToStart, false);
+          } else {
+            // All tasks completed, handle final state
             setCurrentTaskId(null);
             setTimeLeft(0);
             setPomodoroState("idle");
             setTimerRunning(false); // Ensure main timer is off
-            clearInterval(timerRef.current);
-            clearInterval(intervalTimerRef.current); // Ensure interval timer is also off
-          }
-        } else if (currentTask.mode === "pomodoro") {
-          let phaseName = "";
-          switch (pomodoroState) {
-            case "focus":
-              phaseName = translations[language].focus; // Use translated phase name
-              break;
-            case "shortBreak":
-              phaseName = translations[language].shortBreak; // Use translated phase name
-              break;
-            case "longBreak":
-              phaseName = translations[language].longBreak; // Use translated phase name
-              break;
-            default: // Added default case
-              phaseName = "unknown phase";
-              break;
-          }
-          showNotification(
-            translations[language].pomodoroPhaseSkipped.replace(
-              "{phase}",
-              phaseName
-            ),
-            "skipped"
-          );
-
-          const totalFocusSessions = currentTask.pomodoroFocusSessions;
-
-          // Get customizable durations of the current task
-          const focusDuration =
-            currentTask.pomodoroFocusDuration ||
-            DEFAULT_POMODORO_FOCUS_DURATION;
-          const shortBreakDuration =
-            currentTask.pomodoroShortBreakDuration ||
-            DEFAULT_POMODORO_SHORT_BREAK_DURATION;
-          const longBreakDuration =
-            currentTask.pomodoroLongBreakDuration ||
-            DEFAULT_POMODORO_LONG_BREAK_DURATION;
-
-          if (pomodoroState === "focus") {
-            // If in focus, advance to the next Pomodoro break
-            const newPomodoroCount = pomodoroCount + 1; // Simulate completion of current focus
-            setPomodoroCount(newPomodoroCount);
-
-            if (newPomodoroCount % totalFocusSessions === 0) {
-              setTimeLeft(longBreakDuration);
-              setPomodoroState("longBreak");
-            } else {
-              setTimeLeft(shortBreakDuration);
-              setPomodoroState("shortBreak");
-            }
-            setTimerRunning(true); // Start timer for the new Pomodoro state
-          } else if (pomodoroState === "shortBreak") {
-            // If in short break, ALWAYS advance to the next focus.
-            setTimeLeft(focusDuration);
-            setPomodoroState("focus");
-            setTimerRunning(true);
-            // pomodoroCount does not change here, as a focus session has not yet been completed.
-          } else if (pomodoroState === "longBreak") {
-            // If in long break, mark task as complete and end Pomodoro cycle
-            markTaskComplete(currentTaskId);
-            setPomodoroCount(0);
-            setPomodoroState("idle");
-            // After a long Pomodoro break, try to start the next task in sequence
-            const nextTaskInSequence = tasks
-              .filter((task) => !task.completed)
-              .find((task) => task.id !== currentTaskId); // Filter out current task if it was completed
-            if (nextTaskInSequence) {
-              startTask(nextTaskInSequence);
-            } else {
-              const firstUncompletedTaskOverall = tasks.find(
-                (task) => !task.completed
-              );
-              if (firstUncompletedTaskOverall) {
-                startTask(firstUncompletedTaskOverall);
-              } else {
-                setCurrentTaskId(null);
-                setTimeLeft(0);
-              }
-            }
+            showNotification(
+              translations[language].allTasksCompletedNotification,
+              "all-tasks-completed"
+            );
           }
         }
+        showNotification(
+          translations[language].pomodoroPhaseSkipped.replace(
+            "{phase}",
+            phaseName
+          ),
+          "skipped"
+        );
       }
     }
-    setSkippedTime((prev) => prev + timeToSkip); // Accumulate skipped time
+    setTasks(tempUpdatedTasks); // Update tasks state
+
+    // This single check at the end will start the timer if a new phase was set
+    if (shouldStartNextPhase && !isIntervalRunning) {
+      // Only start if it's a Pomodoro phase transition and not an interval
+      setTimerRunning(true);
+      timerWorkerRef.current.postMessage({ command: "start", delay: 1000 }); // Start worker for task
+    }
+    // If it's an interval, setIsIntervalRunning(true) already handles it.
+    // If it's the end of a long break, the logic already handles starting the next task or stopping.
   }, [
     currentTaskId,
     isIntervalRunning,
     tasks,
     pomodoroState,
     pomodoroCount,
-    markTaskComplete,
-    startTask,
     timeLeft,
+    intervalTimeLeft,
+    startTimerOrInterval,
     showNotification,
     language,
     interTaskIntervalDuration,
-    intervalTimeLeft,
     DEFAULT_POMODORO_FOCUS_DURATION,
-    DEFAULT_POMODORO_LONG_BREAK_DURATION,
     DEFAULT_POMODORO_SHORT_BREAK_DURATION,
+    DEFAULT_POMODORO_LONG_BREAK_DURATION,
+    findNextTaskInSequence,
   ]);
 
-  // Get current task for display
-  const currentTask = tasks.find((task) => task.id === currentTaskId);
-  const displayTime = isIntervalRunning ? intervalTimeLeft : timeLeft;
+  // Função para calcular o tempo total estimado de todas as tarefas
+  const calculateTotalEstimatedTime = useCallback(() => {
+    let totalSeconds = 0;
+    tasks.forEach((task, index) => {
+      if (task.mode === "time") {
+        totalSeconds += task.duration;
+      } else if (task.mode === "pomodoro") {
+        const focusDur =
+          task.pomodoroFocusDuration || DEFAULT_POMODORO_FOCUS_DURATION;
+        const shortBreakDur =
+          task.pomodoroShortBreakDuration ||
+          DEFAULT_POMODORO_SHORT_BREAK_DURATION;
+        const longBreakDur =
+          task.pomodoroLongBreakDuration ||
+          DEFAULT_POMODORO_LONG_BREAK_DURATION;
 
-  // Calculate total duration of the current cycle for circle animation
-  const totalDuration = isIntervalRunning
-    ? interTaskIntervalDuration * 60 // Use dynamic interval
-    : currentTask
-    ? currentTask.mode === "time"
-      ? currentTask.duration
-      : pomodoroState === "focus"
-      ? currentTask.pomodoroFocusDuration || DEFAULT_POMODORO_FOCUS_DURATION
-      : pomodoroState === "shortBreak"
-      ? currentTask.pomodoroShortBreakDuration ||
-        DEFAULT_POMODORO_SHORT_BREAK_DURATION
-      : pomodoroState === "longBreak"
-      ? currentTask.pomodoroLongBreakDuration ||
-        DEFAULT_POMODORO_LONG_BREAK_DURATION
-      : 0
-    : 0;
+        totalSeconds += task.pomodoroFocusSessions * focusDur;
+        if (task.pomodoroFocusSessions > 1) {
+          totalSeconds += (task.pomodoroFocusSessions - 1) * shortBreakDur;
+        }
+        totalSeconds += longBreakDur;
+      }
+      // Add inter-task interval only if it's not the last task AND it's not a pomodoro long break ending
+      const isLastTask = index === tasks.length - 1;
+
+      // If it's not the last task, and it's not a pomodoro long break ending (which transitions directly to next task or completion)
+      // This condition needs to be more precise for pomodoro long break.
+      // For simplicity, let's assume inter-task interval is added between any two tasks,
+      // and the end-of-all-tasks logic handles the final state.
+      // The problem is about *starting* the interval when it shouldn't.
+      // The `handleTimerEnd` and `skipCurrentPhase` logic should prevent this.
+      if (!isLastTask) {
+        // Simplified condition to add interval between tasks
+        totalSeconds += interTaskIntervalDuration * 60;
+      }
+    });
+    return totalSeconds;
+  }, [
+    tasks,
+    DEFAULT_POMODORO_FOCUS_DURATION,
+    DEFAULT_POMODORO_SHORT_BREAK_DURATION,
+    DEFAULT_POMODORO_LONG_BREAK_DURATION,
+    interTaskIntervalDuration,
+  ]);
+
+  const totalEstimatedTime = calculateTotalEstimatedTime();
+
+  // Calcula o tempo restante total (tempo da tarefa atual + tempo das tarefas futuras)
+  const totalRemainingTime =
+    totalEstimatedTime - (totalGlobalElapsedTime + skippedTime);
+
+  // Calcula o tempo estimado de conclusão
+  const estimatedCompletionDate = new Date(
+    Date.now() + totalRemainingTime * 1000
+  );
+  const estimatedCompletionTime = estimatedCompletionDate.toLocaleTimeString(
+    language,
+    { hour: "2-digit", minute: "2-digit" }
+  );
 
   // Function to determine timer colors based on Pomodoro state and dark mode
   const getTimerColors = useCallback(() => {
@@ -1025,6 +1166,53 @@ function App() {
   }, [pomodoroState, isIntervalRunning, darkMode]);
 
   const { strokeColor, textColor } = getTimerColors();
+
+  // Helper function to format time as MM:SS
+  const formatTime = (seconds) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes.toString().padStart(2, "0")}:${remainingSeconds
+      .toString()
+      .padStart(2, "0")}`;
+  };
+
+  // Helper function to determine current phase emoji
+  const getCurrentPhaseEmoji = useCallback(() => {
+    if (isIntervalRunning) {
+      return "🚶"; // Walking for inter-task interval
+    }
+    switch (pomodoroState) {
+      case "focus":
+        return "🎯"; // Target for focus
+      case "shortBreak":
+        return "☕"; // Coffee for short break
+      case "longBreak":
+        return "🛌"; // Bed for long break
+      default:
+        return "⏳"; // Hourglass for idle
+    }
+  }, [isIntervalRunning, pomodoroState]);
+
+  // Get current task for display
+  const currentTask = tasks.find((task) => task.id === currentTaskId);
+  const displayTime = isIntervalRunning ? intervalTimeLeft : timeLeft;
+
+  // Calculate total duration of the current cycle for circle animation
+  const totalDuration = isIntervalRunning
+    ? interTaskIntervalDuration * 60 // Use dynamic interval
+    : currentTask
+    ? currentTask.mode === "time"
+      ? currentTask.duration
+      : pomodoroState === "focus"
+      ? currentTask.pomodoroFocusDuration || DEFAULT_POMODORO_FOCUS_DURATION
+      : pomodoroState === "shortBreak"
+      ? currentTask.pomodoroShortBreakDuration ||
+        DEFAULT_POMODORO_SHORT_BREAK_DURATION
+      : pomodoroState === "longBreak"
+      ? currentTask.pomodoroLongBreakDuration ||
+        DEFAULT_POMODORO_LONG_BREAK_DURATION
+      : 0
+    : 0;
 
   // Effect to update progress circle animation
   useEffect(() => {
@@ -1086,73 +1274,66 @@ function App() {
     dragOverItem.current = null;
   };
 
-  // Function to determine current phase emoji
-  const getCurrentPhaseEmoji = () => {
-    if (isIntervalRunning) {
-      return "🚶"; // Walking for inter-task interval
+  // Function to add a new task
+  const addTask = async (e) => {
+    // Made async to await Tone.start()
+    e.preventDefault();
+    if (!taskName.trim()) return;
+
+    // Start Tone.js audio context on first user interaction (adding a task)
+    if (!isAudioContextStarted) {
+      try {
+        await Tone.start();
+        setIsAudioContextStarted(true);
+        console.log("Contexto de áudio Tone.js iniciado ao adicionar tarefa.");
+      } catch (error) {
+        console.error(
+          "Falha ao iniciar o contexto de áudio Tone.js ao adicionar tarefa:",
+          error
+        );
+        showNotification("Falha ao iniciar o áudio. Tente novamente.", "error");
+        return; // Impede a execução se o áudio falhar
+      }
     }
-    switch (pomodoroState) {
-      case "focus":
-        return "🎯"; // Target for focus
-      case "shortBreak":
-        return "☕"; // Coffee for short break
-      case "longBreak":
-        return "🛌"; // Bed for long break
-      default:
-        return "⏳"; // Hourglass for idle
-    }
+
+    const newTask = {
+      id: Date.now(),
+      name: taskName,
+      mode: taskMode,
+      duration: taskMode === "time" ? parseInt(taskDuration, 10) * 60 : 0, // Convert minutes to seconds
+      pomodoroFocusSessions:
+        taskMode === "pomodoro" ? parseInt(pomodoroCustomFocusSessions, 10) : 0, // Save customizable number of focus sessions
+      // Save customizable Pomodoro durations in seconds
+      pomodoroFocusDuration:
+        taskMode === "pomodoro"
+          ? parseInt(customFocusDurationInput, 10) * 60
+          : 0,
+      pomodoroShortBreakDuration:
+        taskMode === "pomodoro"
+          ? parseInt(customShortBreakDurationInput, 10) * 60
+          : 0,
+      pomodoroLongBreakDuration:
+        taskMode === "pomodoro"
+          ? parseInt(customLongBreakDurationInput, 10) * 60
+          : 0,
+      completed: false,
+      skipped: false, // New property for skipped status
+    };
+
+    setTasks([...tasks, newTask]);
+    setTaskName("");
+    setTaskDuration(30); // Reset to default 30 minutes after adding
+    showNotification(translations[language].taskAdded, "added");
   };
 
-  // Function to calculate total estimated time of all tasks
-  const calculateTotalEstimatedTime = useCallback(() => {
-    let totalSeconds = 0;
-    tasks.forEach((task, index) => {
-      if (task.mode === "time") {
-        totalSeconds += task.duration;
-      } else if (task.mode === "pomodoro") {
-        const focusDur =
-          task.pomodoroFocusDuration || DEFAULT_POMODORO_FOCUS_DURATION;
-        const shortBreakDur =
-          task.pomodoroShortBreakDuration ||
-          DEFAULT_POMODORO_SHORT_BREAK_DURATION;
-        const longBreakDur =
-          task.pomodoroLongBreakDuration ||
-          DEFAULT_POMODORO_LONG_BREAK_DURATION;
-
-        totalSeconds += task.pomodoroFocusSessions * focusDur;
-        if (task.pomodoroFocusSessions > 1) {
-          totalSeconds += (task.pomodoroFocusSessions - 1) * shortBreakDur;
-        }
-        totalSeconds += longBreakDur; // Assume there's always a long break at the end of the complete cycle
-      }
-      // Add inter-task interval time, except for the last task
-      if (index < tasks.length - 1) {
-        totalSeconds += interTaskIntervalDuration * 60; // Use dynamic interval
-      }
-    });
-    return totalSeconds;
-  }, [
-    tasks,
-    DEFAULT_POMODORO_FOCUS_DURATION,
-    DEFAULT_POMODORO_SHORT_BREAK_DURATION,
-    DEFAULT_POMODORO_LONG_BREAK_DURATION,
-    interTaskIntervalDuration,
-  ]);
-
-  const totalEstimatedTime = calculateTotalEstimatedTime();
-
-  // Calculate total remaining time (current task time + future tasks time)
-  const totalRemainingTime =
-    totalEstimatedTime - (totalGlobalElapsedTime + skippedTime);
-
-  // Calculate estimated completion time
-  const estimatedCompletionDate = new Date(
-    Date.now() + totalRemainingTime * 1000
-  );
-  const estimatedCompletionTime = estimatedCompletionDate.toLocaleTimeString(
-    language,
-    { hour: "2-digit", minute: "2-digit" }
-  );
+  // Function to delete a task
+  const deleteTask = (id) => {
+    setTasks(tasks.filter((task) => task.id !== id));
+    if (currentTaskId === id) {
+      resetTimer();
+      setCurrentTaskId(null);
+    }
+  };
 
   // Effect to ensure currentTaskId is null if all tasks are completed
   useEffect(() => {
@@ -1165,12 +1346,14 @@ function App() {
       setPomodoroState("idle");
       setPomodoroCount(0);
       setIsIntervalRunning(false);
-      clearInterval(timerRef.current);
-      clearInterval(intervalTimerRef.current);
+      if (timerWorkerRef.current) {
+        timerWorkerRef.current.postMessage({ command: "stop" }); // Stop worker
+      }
       showNotification(
         translations[language].allTasksCompletedNotification,
         "all-tasks-completed"
       ); // Show new notification
+      setFirstTaskStartTime(null); // Reset first task start time when all tasks are completed
     }
   }, [tasks, currentTaskId, showNotification, language]); // Depend on tasks and currentTaskId
 
@@ -1188,16 +1371,31 @@ function App() {
     icon,
   }) => {
     const [isHovered, setIsHovered] = useState(false);
+
+    const handleChange = (e) => {
+      const inputValue = e.target.value;
+      if (inputValue === "") {
+        onChange(0); // Treat empty string as 0
+      } else {
+        const parsedValue = parseInt(inputValue, 10);
+        if (!isNaN(parsedValue)) {
+          onChange(parsedValue);
+        }
+      }
+    };
+
     const handleIncrement = () => {
-      onChange((prev) =>
-        max !== undefined && prev + 1 > max ? max : prev + 1
-      );
+      const numValue = value || 0; // Use current value, fallback to 0
+      const newValue =
+        max !== undefined && numValue + 1 > max ? max : numValue + 1;
+      onChange(newValue);
     };
 
     const handleDecrement = () => {
-      onChange((prev) =>
-        min !== undefined && prev - 1 < min ? min : prev - 1
-      );
+      const numValue = value || 0; // Use current value, fallback to 0
+      const newValue =
+        min !== undefined && numValue - 1 < min ? min : numValue - 1;
+      onChange(newValue);
     };
 
     return (
@@ -1217,16 +1415,15 @@ function App() {
           {translations[language][translationKey]}
         </label>
         <div className="flex items-center space-x-1 sm:space-x-2 mb-1 sm:mb-2">
-          <span className="text-2xl sm:text-3xl">{icon}</span>{" "}
-          {/* Use the icon prop directly */}
+          <span className="text-2xl sm:text-3xl">{icon}</span>
           <input
             type="number"
             id={id}
             className={`text-4xl sm:text-5xl font-extrabold ${
               darkMode ? "text-indigo-300" : "text-indigo-800"
             } w-20 sm:w-24 text-center !bg-transparent focus:outline-none py-1 sm:py-2 px-2 sm:px-3 !focus:bg-transparent transition-colors duration-300 custom-number-input`}
-            value={value}
-            onChange={(e) => onChange(parseInt(e.target.value, 10) || 0)}
+            value={value === 0 ? "" : value} // Display empty string if value is 0
+            onChange={handleChange}
             min={min}
             max={max}
             required
@@ -1306,7 +1503,7 @@ function App() {
         darkMode ? "bg-gray-900 text-gray-100" : "bg-gray-100 text-gray-800"
       } flex flex-col items-center p-4 font-inter transition-colors duration-300`}
     >
-      {/* Global styles for hiding number input arrows */}
+      {/* Estilos globais para ocultar as setas de entrada numérica */}
       <style>
         {`
         input[type='number']::-webkit-inner-spin-button,
@@ -1338,18 +1535,18 @@ function App() {
               className={`p-2 rounded-full ${
                 darkMode
                   ? "bg-gray-700 text-indigo-300"
-                  : "bg-gray-200 text-indigo-700"
+                  : "bg-indigo-200 text-indigo-700"
               } transition-colors duration-300`}
               title={translations[language].options}
             >
-              {/* Three vertical dots icon */}
+              {/* Ícone de três pontos verticais */}
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 className="h-5 w-5 sm:h-6 sm:w-6"
                 viewBox="0 0 24 24"
                 fill="currentColor"
               >
-                <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
+                <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s-.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
               </svg>
             </button>
             <button
@@ -1400,7 +1597,7 @@ function App() {
           </div>
         </div>
 
-        {/* Options Modal */}
+        {/* Modal de Opções */}
         {showOptions && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div
@@ -1419,7 +1616,7 @@ function App() {
               <button
                 onClick={() => setShowOptions(false)}
                 className="absolute top-2 right-2 sm:top-4 sm:right-4 p-1 sm:p-2 rounded-full text-gray-400 hover:text-gray-600 focus:outline-none"
-                title="Close options"
+                title="Fechar opções"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -1437,7 +1634,7 @@ function App() {
                 </svg>
               </button>
 
-              {/* Language Selection */}
+              {/* Seleção de Idioma */}
               <div className="mb-4 sm:mb-6">
                 <label
                   className={`block text-base sm:text-lg font-semibold mb-1 sm:mb-2 ${
@@ -1471,7 +1668,7 @@ function App() {
                 </div>
               </div>
 
-              {/* Inter-Task Interval Setting */}
+              {/* Configuração do Intervalo Entre Tarefas */}
               <div className="mb-4 sm:mb-6">
                 <NumberInput
                   id="interTaskInterval"
@@ -1482,11 +1679,11 @@ function App() {
                   unit="min"
                   darkMode={darkMode}
                   translationKey="interTaskIntervalSetting"
-                  icon="⏱️" // Clock icon for duration
+                  icon="⏱️" // Ícone de relógio para duração
                 />
               </div>
 
-              {/* Enable Sound Notifications Toggle */}
+              {/* Alternar Notificações Sonoras */}
               <div className="mb-4 sm:mb-6 flex items-center justify-between">
                 <label
                   className={`block text-base sm:text-lg font-semibold ${
@@ -1510,12 +1707,12 @@ function App() {
                 </label>
               </div>
 
-              {/* Save/Close button - already handled by direct state updates and close button */}
+              {/* Botão Salvar/Fechar - já tratado por atualizações de estado diretas e botão de fechar */}
             </div>
           </div>
         )}
 
-        {/* Form to add tasks */}
+        {/* Formulário para adicionar tarefas */}
         <form
           onSubmit={addTask}
           className={`mb-6 sm:mb-8 p-4 rounded-md ${
@@ -1628,7 +1825,7 @@ function App() {
                 unit="min"
                 darkMode={darkMode}
                 translationKey="durationMinutes"
-                icon="⏱️" // Clock icon for duration
+                icon="⏱️" // Ícone de relógio para duração
               />
             </div>
           )}
@@ -1643,7 +1840,7 @@ function App() {
                 {translations[language].pomodoroSettings}
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                {/* Focus Sessions */}
+                {/* Sessões de Foco */}
                 <NumberInput
                   id="pomodoroFocusSessions"
                   label={translations[language].focusSessions}
@@ -1653,10 +1850,10 @@ function App() {
                   unit="sessions"
                   darkMode={darkMode}
                   translationKey="focusSessions"
-                  icon="🎯" // Target icon for focus
+                  icon="🎯" // Ícone de alvo para foco
                 />
 
-                {/* Focus Duration */}
+                {/* Duração do Foco */}
                 <NumberInput
                   id="customFocusDuration"
                   label={translations[language].focusDurationMin}
@@ -1666,10 +1863,10 @@ function App() {
                   unit="min"
                   darkMode={darkMode}
                   translationKey="focusDurationMin"
-                  icon="⏱️" // Clock icon for duration
+                  icon="⏱️" // Ícone de relógio para duração
                 />
 
-                {/* Short Break Duration */}
+                {/* Duração da Pausa Curta */}
                 <NumberInput
                   id="customShortBreakDuration"
                   label={translations[language].shortBreakMin}
@@ -1679,10 +1876,10 @@ function App() {
                   unit="min"
                   darkMode={darkMode}
                   translationKey="shortBreakMin"
-                  icon="☕" // Coffee icon for short break
+                  icon="☕" // Ícone de café para pausa curta
                 />
 
-                {/* Long Break Duration */}
+                {/* Duração da Pausa Longa */}
                 <NumberInput
                   id="customLongBreakDuration"
                   label={translations[language].longBreakMin}
@@ -1692,20 +1889,20 @@ function App() {
                   unit="min"
                   darkMode={darkMode}
                   translationKey="longBreakMin"
-                  icon="🛌" // Bed icon for long break
+                  icon="🛌" // Ícone de cama para pausa longa
                 />
               </div>
             </>
           )}
         </form>
 
-        {/* Timer Display */}
+        {/* Exibição do Cronômetro */}
         <div
           className={`text-center mb-6 sm:mb-8 p-4 sm:p-6 rounded-lg relative flex flex-col ${
             darkMode ? "border border-gray-700" : "border border-gray-200"
           } transition-colors duration-300`}
         >
-          {/* Task Name (top-left absolute) */}
+          {/* Nome da Tarefa (canto superior esquerdo absoluto) */}
           <div
             className={`absolute left-3 px-1 text-xs sm:text-sm font-bold z-10 top-0 -translate-y-1/2 ${
               darkMode ? "bg-gray-800 text-gray-300" : "bg-white text-gray-700"
@@ -1727,8 +1924,9 @@ function App() {
             </h2>
           </div>
 
-          {/* Pomodoro State and Emoji (below title, aligned left) */}
-          {currentTask && currentTask.mode === "pomodoro" && (
+          {/* Estado Pomodoro e Emoji (abaixo do título, alinhado à esquerda) */}
+          {((currentTask && currentTask.mode === "pomodoro") ||
+            isIntervalRunning) && (
             <div
               className={`absolute left-3 px-1 text-xs sm:text-sm font-bold z-10 top-8 sm:top-12 -translate-y-1/2 ${
                 darkMode
@@ -1740,7 +1938,9 @@ function App() {
             >
               {getCurrentPhaseEmoji()}
               <span className="ml-1 sm:ml-2">
-                {pomodoroState === "focus"
+                {isIntervalRunning
+                  ? translations[language].interTaskInterval
+                  : pomodoroState === "focus"
                   ? `${translations[language].focus} (${pomodoroCount + 1}/${
                       currentTask.pomodoroFocusSessions
                     })`
@@ -1757,12 +1957,12 @@ function App() {
             </div>
           )}
 
-          {/* Main content: Timer Circle + Times Column */}
+          {/* Conteúdo Principal: Círculo do Cronômetro + Coluna de Tempos */}
           <div className="flex flex-col md:flex-row items-center justify-center mt-20 sm:mt-28">
-            {/* Main Timer Circle (left) */}
+            {/* Círculo Principal do Cronômetro (esquerda) */}
             <div className="relative w-40 h-40 sm:w-48 sm:h-48 mb-4 md:mb-0 md:mr-8">
               <svg className="w-full h-full" viewBox="0 0 100 100">
-                {/* Background circle */}
+                {/* Círculo de fundo */}
                 <circle
                   cx="50"
                   cy="50"
@@ -1770,47 +1970,45 @@ function App() {
                   fill="none"
                   stroke={
                     darkMode ? "#4a5568" : "#e0e0e0"
-                  } /* Background circle color */
+                  } /* Cor do círculo de fundo */
                   strokeWidth="5"
                 />
-                {/* Animated progress circle */}
+                {/* Círculo de progresso animado */}
                 <circle
                   cx="50"
                   cy="50"
                   r="45"
                   fill="none"
-                  stroke={strokeColor} /* Progress color (dynamic) */
+                  stroke={strokeColor} /* Cor do progresso (dinâmica) */
                   strokeWidth="5"
                   strokeLinecap="round"
-                  transform="rotate(-90 50 50)" /* Start stroke at the top */
+                  transform="rotate(-90 50 50)" /* Inicia o traço no topo */
                   style={{
                     transition: "stroke-dashoffset 1s linear",
-                  }} /* Smooth transition */
+                  }} /* Transição suave */
                   ref={progressCircleRef}
                 />
               </svg>
-              {/* Digital time display, centered over SVG */}
+              {/* Exibição do tempo digital, centralizado sobre o SVG */}
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <div
                   className={`text-4xl md:text-5xl font-extrabold transition-colors duration-300 leading-none`}
                   style={{ color: textColor }}
                 >
-                  {Math.floor(displayTime / 60)
-                    .toString()
-                    .padStart(2, "0")}
+                  {formatTime(displayTime).split(":")[0]}
                 </div>
                 <div
                   className={`text-4xl md:text-5xl font-extrabold transition-colors duration-300 leading-none`}
                   style={{ color: textColor }}
                 >
-                  {(displayTime % 60).toString().padStart(2, "0")}
+                  {formatTime(displayTime).split(":")[1]}
                 </div>
               </div>
             </div>
 
-            {/* Times Grid (right) */}
+            {/* Grade de Tempos (direita) */}
             <div className="grid grid-cols-2 gap-2 sm:gap-4 mt-4 md:mt-0">
-              {/* Elapsed Card */}
+              {/* Cartão de Tempo Decorrido */}
               <div
                 className={`p-2 sm:p-4 rounded-lg relative border ${
                   darkMode ? "border-gray-600" : "border-gray-200"
@@ -1834,7 +2032,7 @@ function App() {
                 </span>
               </div>
 
-              {/* Remaining Card */}
+              {/* Cartão de Tempo Restante */}
               <div
                 className={`p-2 sm:p-4 rounded-lg relative border ${
                   darkMode ? "border-gray-600" : "border-gray-200"
@@ -1860,7 +2058,7 @@ function App() {
                 </span>
               </div>
 
-              {/* Estimated Card */}
+              {/* Cartão de Tempo Estimado */}
               <div
                 className={`p-2 sm:p-4 rounded-lg relative border ${
                   darkMode ? "border-gray-600" : "border-gray-200"
@@ -1884,7 +2082,7 @@ function App() {
                 </span>
               </div>
 
-              {/* Skipped Time Card */}
+              {/* Cartão de Tempo Pulado */}
               <div
                 className={`p-2 sm:p-4 rounded-lg relative border ${
                   darkMode ? "border-gray-600" : "border border-gray-200"
@@ -1909,7 +2107,7 @@ function App() {
               </div>
             </div>
           </div>
-          {/* Estimated Completion Time Text */}
+          {/* Texto de Tempo Estimado de Conclusão */}
           <p
             className={`text-xs sm:text-sm mt-2 sm:mt-4 ${
               darkMode ? "text-gray-400" : "text-gray-500"
@@ -1920,50 +2118,97 @@ function App() {
               estimatedCompletionTime
             )}
           </p>
+          {/* Novo: Hora de Início da Tarefa */}
+          {firstTaskStartTime && (
+            <p
+              className={`text-xs sm:text-sm mt-1 sm:mt-2 ${
+                darkMode ? "text-gray-400" : "text-gray-500"
+              } transition-colors duration-300`}
+            >
+              {translations[language].taskStartTimeLabel}:{" "}
+              {new Date(firstTaskStartTime).toLocaleTimeString(language, {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </p>
+          )}
 
-          {/* Buttons (below all content, centered) */}
+          {/* Botões (abaixo de todo o conteúdo, centralizados) */}
           <div className="flex justify-center space-x-2 sm:space-x-4 mt-4 sm:mt-8">
             <button
-              onClick={() => {
-                if (timerRunning) {
+              onClick={async () => {
+                // Inicia o contexto de áudio do Tone.js na primeira interação do usuário
+                if (!isAudioContextStarted) {
+                  try {
+                    await Tone.start();
+                    setIsAudioContextStarted(true);
+                    console.log("Contexto de áudio Tone.js iniciado.");
+                  } catch (error) {
+                    console.error(
+                      "Falha ao iniciar o contexto de áudio Tone.js:",
+                      error
+                    );
+                    showNotification(
+                      "Falha ao iniciar o áudio. Tente novamente.",
+                      "error"
+                    );
+                    return; // Impede a execução se o áudio falhar
+                  }
+                }
+
+                if (timerRunning || isIntervalRunning) {
+                  // If either timer is running, pause
                   pauseTimer();
                 } else {
-                  // Find the currently selected task
-                  let taskToStart = tasks.find((task) => !task.completed); // Always try to find the first uncompleted task if none is current or current is done
-
-                  if (taskToStart) {
-                    // If the task to start is different from the current task OR if the current task is completed,
-                    // call startTask to initialize correctly.
-                    if (
-                      taskToStart.id !== currentTaskId ||
-                      (currentTask && currentTask.completed)
-                    ) {
-                      startTask(taskToStart);
-                    } else {
-                      setTimerRunning(true); // Resume the current (uncompleted) task
-                      showNotification(
-                        translations[language].timerResumed,
-                        "started"
-                      ); // Notification for resuming
+                  let taskToHandle = null;
+                  // Priority 1: Resume the currently selected task if it exists and is not completed
+                  if (currentTaskId) {
+                    const existingCurrentTask = tasks.find(
+                      (t) => t.id === currentTaskId
+                    );
+                    if (existingCurrentTask && !existingCurrentTask.completed) {
+                      taskToHandle = existingCurrentTask;
                     }
+                  }
+
+                  // Priority 2: If no current task to resume, find the first uncompleted task in the list
+                  if (!taskToHandle) {
+                    taskToHandle = findNextTaskInSequence(tasks, currentTaskId); // Use the new helper here
+                  }
+
+                  if (taskToHandle) {
+                    // Determine if it's a resume or a new start
+                    const isResuming =
+                      taskToHandle.id === currentTaskId &&
+                      (timeLeft > 0 || intervalTimeLeft > 0);
+                    startTimerOrInterval(taskToHandle, isResuming);
+                  } else if (intervalTimeLeft > 0) {
+                    // If interval was paused, resume it
+                    startTimerOrInterval(null, true); // Pass null to indicate resuming interval
+                  } else {
+                    console.log("Nenhuma tarefa para iniciar.");
                   }
                 }
               }}
               className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-bold transition-all duration-200 ${
-                timerRunning
+                timerRunning || isIntervalRunning
                   ? "bg-red-500 hover:bg-red-600 text-white"
                   : "bg-green-500 hover:bg-green-600 text-white"
               }`}
               disabled={
-                tasks.length === 0 && !isIntervalRunning && !currentTaskId
+                tasks.length === 0 &&
+                !currentTaskId &&
+                !isIntervalRunning &&
+                timeLeft === 0 &&
+                intervalTimeLeft === 0
               }
               title={
-                timerRunning
+                timerRunning || isIntervalRunning
                   ? translations[language].pauseTimer
                   : translations[language].startTimer
               }
             >
-              {timerRunning ? (
+              {timerRunning || isIntervalRunning ? (
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-5 w-5 sm:h-6 sm:w-6"
@@ -2001,7 +2246,7 @@ function App() {
               )}
             </button>
             <button
-              onClick={resetTimer} // Now resets only the current task
+              onClick={resetTimer} // Agora reseta apenas a tarefa atual
               className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold transition-all duration-200"
               disabled={
                 !currentTaskId &&
@@ -2011,7 +2256,7 @@ function App() {
               }
               title={translations[language].restartTask}
             >
-              {/* Reset icon (circular refresh arrow) */}
+              {/* Ícone de reset (seta circular de atualização) */}
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="20"
@@ -2031,7 +2276,7 @@ function App() {
             <button
               onClick={skipCurrentPhase}
               className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center bg-yellow-200 hover:bg-yellow-300 text-yellow-800 font-bold transition-all duration-200"
-              disabled={!currentTaskId && !isIntervalRunning} // Disable if no task or interval is active
+              disabled={!currentTaskId && !isIntervalRunning} // Desabilita se nenhuma tarefa ou intervalo estiver ativo
               title={translations[language].skipCurrentPhase}
             >
               <svg
@@ -2050,7 +2295,7 @@ function App() {
               </svg>
             </button>
             <button
-              onClick={resetAll} // New button to reset everything
+              onClick={resetAll} // Novo botão para resetar tudo
               className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center bg-red-600 hover:bg-red-700 text-white font-bold transition-all duration-200"
               title={translations[language].resetAll}
             >
@@ -2072,7 +2317,7 @@ function App() {
           </div>
         </div>
 
-        {/* Task List */}
+        {/* Lista de Tarefas */}
         <div>
           <h2
             className={`text-xl sm:text-2xl font-bold mb-4 ${
@@ -2096,7 +2341,7 @@ function App() {
                   key={task.id}
                   draggable
                   onDragStart={(e) => handleDragStart(e, index)}
-                  onDragOver={(e) => e.preventDefault()} // Allow drop
+                  onDragOver={(e) => e.preventDefault()} // Permite soltar
                   onDrop={handleDrop}
                   onDragEnter={(e) => handleDragEnter(e, index)}
                   onDragLeave={handleDragLeave}
@@ -2124,38 +2369,44 @@ function App() {
                       )}
                       {task.name}
                     </span>
-                    {/* Action buttons in top-right corner */}
+                    {/* Botões de ação no canto superior direito */}
                     <div className="flex space-x-1 sm:space-x-2">
                       {!task.completed && (
                         <button
                           onClick={() => {
-                            if (currentTaskId === task.id) {
-                              if (timerRunning) {
-                                pauseTimer();
-                              } else {
-                                setTimerRunning(true); // Resume
-                                showNotification(
-                                  translations[language].timerResumed,
-                                  "started"
-                                );
-                              }
+                            if (
+                              currentTaskId === task.id &&
+                              (timerRunning || isIntervalRunning)
+                            ) {
+                              pauseTimer();
                             } else {
-                              startTask(task); // Start this task (will stop any other running task)
+                              const isResuming =
+                                task.id === currentTaskId &&
+                                (timeLeft > 0 || intervalTimeLeft > 0);
+                              startTimerOrInterval(task, isResuming);
                             }
                           }}
                           className={`p-0.5 sm:p-1 rounded-full text-white transition-all duration-200 ${
-                            currentTaskId === task.id && timerRunning
-                              ? "bg-red-500 hover:bg-red-600" // Pause color
-                              : "bg-green-500 hover:bg-green-600" // Play color
+                            currentTaskId === task.id &&
+                            (timerRunning || isIntervalRunning)
+                              ? "bg-red-500 hover:bg-red-600"
+                              : "bg-green-500 hover:bg-green-600"
                           }`}
-                          disabled={task.completed} // Only disable if the task is completed
+                          disabled={
+                            task.completed ||
+                            ((timerRunning || isIntervalRunning) &&
+                              currentTaskId !== null &&
+                              currentTaskId !== task.id)
+                          }
                           title={
-                            currentTaskId === task.id && timerRunning
+                            currentTaskId === task.id &&
+                            (timerRunning || isIntervalRunning)
                               ? translations[language].pauseTimer
                               : translations[language].startTimer
                           }
                         >
-                          {currentTaskId === task.id && timerRunning ? (
+                          {currentTaskId === task.id &&
+                          (timerRunning || isIntervalRunning) ? (
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
                               className="h-4 w-4 sm:h-5 sm:w-5"
@@ -2196,7 +2447,7 @@ function App() {
                       <button
                         onClick={() => deleteTask(task.id)}
                         className="p-0.5 sm:p-1 rounded-full text-red-500 hover:text-red-700 transition-all duration-200"
-                        title="Delete Task"
+                        title="Deletar Tarefa"
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -2249,23 +2500,47 @@ function App() {
                     </div>
                   )}
 
-                  {/* Completion check icon (bottom-right) */}
+                  {/* Ícone de verificação de conclusão (canto inferior direito) */}
                   {task.completed && (
-                    <div className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 p-0.5 sm:p-1 bg-green-500 rounded-full shadow-md">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-3 w-3 sm:h-4 sm:w-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth="3"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
+                    <div
+                      className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 p-0.5 sm:p-1 rounded-full shadow-md"
+                      style={{
+                        backgroundColor: task.skipped ? "#F59E0B" : "#22C55E",
+                      }} // Yellow for skipped, green for completed
+                    >
+                      {task.skipped ? (
+                        // Render skip icon (double chevron)
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-3 w-3 sm:h-4 sm:w-4 text-white"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth="3"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M13 5l7 7-7 7M5 5l7 7-7 7"
+                          />
+                        </svg>
+                      ) : (
+                        // Render checkmark icon
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-3 w-3 sm:h-4 sm:w-4 text-white"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth="3"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                      )}
                     </div>
                   )}
                 </li>
