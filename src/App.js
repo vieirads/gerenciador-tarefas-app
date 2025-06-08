@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import * as Tone from 'tone'; // Import Tone.js
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import * as Tone from "tone"; // Import Tone.js
 
 // Translations object for i18n
 const translations = {
@@ -299,7 +299,9 @@ const Notification = ({ message, type, onClose, darkMode }) => {
 const formatTotalTime = (totalSeconds) => {
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
-  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  return `${hours.toString().padStart(2, "0")}:${minutes
+    .toString()
+    .padStart(2, "0")}`;
 };
 
 // Main application component
@@ -315,19 +317,22 @@ function App() {
   const [currentTaskId, setCurrentTaskId] = useState(null); // ID of the current running task
   const [timerRunning, setTimerRunning] = useState(false); // Indicates if the timer is active
   const [timeLeft, setTimeLeft] = useState(0); // Time left in seconds
-  const [pomodoroState, setPomodoroState] = useState('idle'); // 'idle', 'focus', 'shortBreak', 'longBreak'
+  const [pomodoroState, setPomodoroState] = useState("idle"); // 'idle', 'focus', 'shortBreak', 'longBreak'
   const [pomodoroCount, setPomodoroCount] = useState(0); // Counter for completed Pomodoro cycles (completed focus sessions)
   const [isIntervalRunning, setIsIntervalRunning] = useState(false); // Indicates if the 5-minute interval is active (changed to boolean)
   const [intervalTimeLeft, setIntervalTimeLeft] = useState(0); // Time left for the 5-minute interval
-  const [taskName, setTaskName] = useState(''); // Name of the new task
-  const [taskMode, setTaskMode] = useState('time'); // Mode of the new task: 'time' or 'pomodoro'
+  const [taskName, setTaskName] = useState(""); // Name of the new task
+  const [taskMode, setTaskMode] = useState("time"); // Mode of the new task: 'time' or 'pomodoro'
   const [taskDuration, setTaskDuration] = useState(30); // Duration of the new task (for 'time' mode), default 30 minutes
-  const [pomodoroCustomFocusSessions, setPomodoroCustomFocusSessions] = useState(4); // Customizable number of focus sessions for Pomodoro
+  const [pomodoroCustomFocusSessions, setPomodoroCustomFocusSessions] =
+    useState(4); // Customizable number of focus sessions for Pomodoro
 
   // New states for customizable Pomodoro times
   const [customFocusDurationInput, setCustomFocusDurationInput] = useState(25); // Focus duration in minutes (for input)
-  const [customShortBreakDurationInput, setCustomShortBreakDurationInput] = useState(5); // Short break duration in minutes (for input)
-  const [customLongBreakDurationInput, setCustomLongBreakDurationInput] = useState(15); // Long break duration in minutes (for input)
+  const [customShortBreakDurationInput, setCustomShortBreakDurationInput] =
+    useState(5); // Short break duration in minutes (for input)
+  const [customLongBreakDurationInput, setCustomLongBreakDurationInput] =
+    useState(15); // Long break duration in minutes (for input)
 
   const progressCircleRef = useRef(null); // Reference for the SVG progress circle
 
@@ -341,32 +346,34 @@ function App() {
   // Dark mode state
   const [darkMode, setDarkMode] = useState(() => {
     // Initialize dark mode from localStorage or default to false
-    const savedMode = localStorage.getItem('darkMode');
-    return savedMode === 'true' ? true : false;
+    const savedMode = localStorage.getItem("darkMode");
+    return savedMode === "true" ? true : false;
   });
 
   // Notification state
-  const [notification, setNotification] = useState({ message: '', type: '' });
+  const [notification, setNotification] = useState({ message: "", type: "" });
 
   // Options modal state
   const [showOptions, setShowOptions] = useState(false);
 
   // Language state, initialized from localStorage or default to 'en'
   const [language, setLanguage] = useState(() => {
-    const savedLang = localStorage.getItem('language');
-    return savedLang || 'en';
+    const savedLang = localStorage.getItem("language");
+    return savedLang || "en";
   });
 
   // Inter-task interval state, initialized from localStorage or default
-  const [interTaskIntervalDuration, setInterTaskIntervalDuration] = useState(() => {
-    const savedInterval = localStorage.getItem('interTaskInterval');
-    return savedInterval ? parseInt(savedInterval, 10) : 5; // Default 5 minutes
-  });
+  const [interTaskIntervalDuration, setInterTaskIntervalDuration] = useState(
+    () => {
+      const savedInterval = localStorage.getItem("interTaskInterval");
+      return savedInterval ? parseInt(savedInterval, 10) : 5; // Default 5 minutes
+    }
+  );
 
   // Sound enabled state, initialized from localStorage or default to false
   const [soundEnabled, setSoundEnabled] = useState(() => {
-    const savedSound = localStorage.getItem('soundEnabled');
-    return savedSound === 'true' ? true : false;
+    const savedSound = localStorage.getItem("soundEnabled");
+    return savedSound === "true" ? true : false;
   });
 
   // Refs for Tone.js synths
@@ -389,7 +396,6 @@ function App() {
   // New states for managing timer accuracy on suspension
   const [timerStartTime, setTimerStartTime] = useState(null); // Timestamp when timer started/resumed
   const [durationAtTimerStart, setDurationAtTimerStart] = useState(0); // timeLeft or intervalTimeLeft at timerStartTime
-
 
   // Drag and drop functions
   const draggedItem = useRef(null);
@@ -423,37 +429,47 @@ function App() {
   // Initialize Web Worker on component mount
   useEffect(() => {
     // Cria uma nova instância do Web Worker a partir do código em string
-    const blob = new Blob([timerWorkerCode], { type: 'application/javascript' });
+    const blob = new Blob([timerWorkerCode], {
+      type: "application/javascript",
+    });
     const workerUrl = URL.createObjectURL(blob);
     timerWorkerRef.current = new Worker(workerUrl);
 
     // Escuta mensagens do Web Worker
-    timerWorkerRef.current.onmessage = function(e) {
-      if (e.data === 'tick') {
+    timerWorkerRef.current.onmessage = function (e) {
+      if (e.data === "tick") {
         const currentTime = Date.now();
-        const elapsedSinceStart = Math.floor((currentTime - timerStartTime) / 1000);
+        const elapsedSinceStart = Math.floor(
+          (currentTime - timerStartTime) / 1000
+        );
 
         if (isIntervalRunning) {
-          const newIntervalTimeLeft = Math.max(0, durationAtTimerStart - elapsedSinceStart);
+          const newIntervalTimeLeft = Math.max(
+            0,
+            durationAtTimerStart - elapsedSinceStart
+          );
           setIntervalTimeLeft(newIntervalTimeLeft);
         } else {
-          const newTimeLeft = Math.max(0, durationAtTimerStart - elapsedSinceStart);
+          const newTimeLeft = Math.max(
+            0,
+            durationAtTimerStart - elapsedSinceStart
+          );
           setTimeLeft(newTimeLeft);
         }
-        setTotalGlobalElapsedTime(prev => prev + 1);
+        setTotalGlobalElapsedTime((prev) => prev + 1);
       }
     };
 
     // Limpa o Web Worker quando o componente é desmontado
     return () => {
       if (timerWorkerRef.current) {
-        timerWorkerRef.current.postMessage({ command: 'stop' }); // Envia comando para parar o worker
+        timerWorkerRef.current.postMessage({ command: "stop" }); // Envia comando para parar o worker
         timerWorkerRef.current.terminate(); // Termina o worker
         URL.revokeObjectURL(workerUrl); // Libera o URL do objeto
         timerWorkerRef.current = null;
       }
     };
-  }, [timerWorkerCode, timerStartTime, durationAtTimerStart, isIntervalRunning]); // Adicionado dependências
+  }, [timerStartTime, durationAtTimerStart, isIntervalRunning]); // Removido timerWorkerCode das dependências
 
   // Initialize Tone.js synths ONLY WHEN audio context is started
   useEffect(() => {
@@ -484,156 +500,223 @@ function App() {
     };
   }, [isAudioContextStarted]); // Depends on isAudioContextStarted
 
-
   // Function to play sounds based on notification type
-  const playSound = useCallback((type) => {
-    if (!soundEnabled || !isAudioContextStarted || !Tone) return; // Only play if sound is enabled and audio context started
+  const playSound = useCallback(
+    (type) => {
+      if (!soundEnabled || !isAudioContextStarted || !Tone) return; // Only play if sound is enabled and audio context started
 
-    // Use Tone.now() as a base time, and add a small, unique offset for each sound
-    // This helps prevent "Start time must be strictly greater than previous start time" errors
-    // when multiple sounds are triggered very rapidly.
-    const now = Tone.now();
-    const delay = 0.01; // Small delay in seconds
+      // Use Tone.now() as a base time, and add a small, unique offset for each sound
+      // This helps prevent "Start time must be strictly greater than previous start time" errors
+      // when multiple sounds are triggered very rapidly.
+      const now = Tone.now();
+      const delay = 0.01; // Small delay in seconds
 
-    switch (type) {
-      case 'focus-ended':
-        focusSynthRef.current.triggerAttackRelease("C4", "8n", now + delay * 1);
-        break;
-      case 'short-break-ended':
-        breakSynthRef.current.triggerAttackRelease("E4", "8n", now + delay * 2);
-        break;
-      case 'long-break-ended':
-        longBreakSynthRef.current.triggerAttackRelease(["C5", "E5", "G5"], "4n", now + delay * 3);
-        break;
-      case 'completed':
-      case 'all-tasks-completed':
-        completeSynthRef.current.triggerAttackRelease(["C5", "E5", "G5"], "4n", now + delay * 4);
-        break;
-      case 'skipped':
-        skippedSynthRef.current.triggerAttackRelease("C3", "16n", now + delay * 5);
-        break;
-      case 'paused':
-        pausedSynthRef.current.triggerAttackRelease("A3", "8n", now + delay * 6);
-        break;
-      case 'started':
-      case 'resumed':
-        startedSynthRef.current.triggerAttackRelease("C4", "16n", now + delay * 7);
-        break;
-      case 'added':
-        addedSynthRef.current.triggerAttackRelease("D4", "16n", now + delay * 8);
-        break;
-      case 'reset':
-        resetSynthRef.current.triggerAttackRelease("C2", "8n", now + delay * 9);
-        break;
-      default:
-        // No sound for other types
-        break;
-    }
-  }, [soundEnabled, isAudioContextStarted]);
-
+      switch (type) {
+        case "focus-ended":
+          focusSynthRef.current.triggerAttackRelease(
+            "C4",
+            "8n",
+            now + delay * 1
+          );
+          break;
+        case "short-break-ended":
+          breakSynthRef.current.triggerAttackRelease(
+            "E4",
+            "8n",
+            now + delay * 2
+          );
+          break;
+        case "long-break-ended":
+          longBreakSynthRef.current.triggerAttackRelease(
+            ["C5", "E5", "G5"],
+            "4n",
+            now + delay * 3
+          );
+          break;
+        case "completed":
+        case "all-tasks-completed":
+          completeSynthRef.current.triggerAttackRelease(
+            ["C5", "E5", "G5"],
+            "4n",
+            now + delay * 4
+          );
+          break;
+        case "skipped":
+          skippedSynthRef.current.triggerAttackRelease(
+            "C3",
+            "16n",
+            now + delay * 5
+          );
+          break;
+        case "paused":
+          pausedSynthRef.current.triggerAttackRelease(
+            "A3",
+            "8n",
+            now + delay * 6
+          );
+          break;
+        case "started":
+        case "resumed":
+          startedSynthRef.current.triggerAttackRelease(
+            "C4",
+            "16n",
+            now + delay * 7
+          );
+          break;
+        case "added":
+          addedSynthRef.current.triggerAttackRelease(
+            "D4",
+            "16n",
+            now + delay * 8
+          );
+          break;
+        case "reset":
+          resetSynthRef.current.triggerAttackRelease(
+            "C2",
+            "8n",
+            now + delay * 9
+          );
+          break;
+        default:
+          // No sound for other types
+          break;
+      }
+    },
+    [soundEnabled, isAudioContextStarted]
+  );
 
   // Function to show notifications
-  const showNotification = useCallback((message, type) => {
-    setNotification({ message, type });
-    playSound(type); // Play sound when notification is shown
-  }, [playSound]);
+  const showNotification = useCallback(
+    (message, type) => {
+      setNotification({ message, type });
+      playSound(type); // Play sound when notification is shown
+    },
+    [playSound]
+  );
 
   // Function to clear notification
   const clearNotification = useCallback(() => {
-    setNotification({ message: '', type: '' });
+    setNotification({ message: "", type: "" });
   }, []);
 
   // Helper function to find the next uncompleted task in the list, considering the current task's position
-  const findNextTaskInSequence = useCallback((currentTasks, currentActiveTaskId) => {
-    let startIndex = 0;
-    if (currentActiveTaskId) {
-      const currentTaskIndex = currentTasks.findIndex(task => task.id === currentActiveTaskId);
-      if (currentTaskIndex !== -1) {
-        startIndex = currentTaskIndex + 1;
-      }
-    }
-
-    // First, try to find the next uncompleted task *after* the current one in the original list
-    for (let i = startIndex; i < currentTasks.length; i++) {
-      if (!currentTasks[i].completed) {
-        return currentTasks[i];
-      }
-    }
-
-    // If no uncompleted tasks found after the current one,
-    // then look for the first uncompleted task from the beginning of the list
-    for (let i = 0; i < startIndex; i++) {
-      if (!currentTasks[i].completed) {
-        return currentTasks[i];
-      }
-    }
-
-    // If no uncompleted tasks are found anywhere
-    return null;
-  }, []);
-
-
-  // Function to start a specific task (or an interval)
-  const startTimerOrInterval = useCallback((targetTask = null, isResuming = false) => {
-    // Clear any existing timer by sending a stop command to the worker
-    if (timerWorkerRef.current) {
-      timerWorkerRef.current.postMessage({ command: 'stop' });
-    }
-
-    setTimerRunning(false); // Reset main timer state
-    setIsIntervalRunning(false); // Reset interval state
-
-    if (targetTask) { // Starting/resuming a task
-      setCurrentTaskId(targetTask.id);
-      // Set firstTaskStartTime only if it's the very first task starting
-      if (firstTaskStartTime === null) {
-        setFirstTaskStartTime(Date.now());
-      }
-
-      let initialTime;
-      let newPomodoroState = 'idle';
-      let newPomodoroCount = 0;
-
-      if (targetTask.mode === 'time') {
-        initialTime = isResuming ? timeLeft : targetTask.duration;
-      } else if (targetTask.mode === 'pomodoro') {
-        if (isResuming) {
-          initialTime = timeLeft;
-          newPomodoroState = pomodoroState;
-          newPomodoroCount = pomodoroCount;
-        } else {
-          initialTime = targetTask.pomodoroFocusDuration || DEFAULT_POMODORO_FOCUS_DURATION;
-          newPomodoroState = 'focus';
-          newPomodoroCount = 0;
+  const findNextTaskInSequence = useCallback(
+    (currentTasks, currentActiveTaskId) => {
+      let startIndex = 0;
+      if (currentActiveTaskId) {
+        const currentTaskIndex = currentTasks.findIndex(
+          (task) => task.id === currentActiveTaskId
+        );
+        if (currentTaskIndex !== -1) {
+          startIndex = currentTaskIndex + 1;
         }
       }
-      setTimeLeft(initialTime);
-      setPomodoroState(newPomodoroState);
-      setPomodoroCount(newPomodoroCount);
-      setTimerRunning(true); // ONLY set timerRunning here
 
-      // Set timer start time and duration for accurate tracking
-      setTimerStartTime(Date.now());
-      setDurationAtTimerStart(initialTime);
+      // First, try to find the next uncompleted task *after* the current one in the original list
+      for (let i = startIndex; i < currentTasks.length; i++) {
+        if (!currentTasks[i].completed) {
+          return currentTasks[i];
+        }
+      }
 
-      timerWorkerRef.current.postMessage({ command: 'start', delay: 1000 }); // Start worker for task
-    } else { // Starting an inter-task interval
-      setCurrentTaskId(null);
-      const initialIntervalTime = isResuming ? intervalTimeLeft : interTaskIntervalDuration * 60;
-      setIntervalTimeLeft(initialIntervalTime);
-      setTimeLeft(0); // Task time is irrelevant during interval
-      setPomodoroState('idle'); // Pomodoro state is idle during interval
-      setIsIntervalRunning(true); // ONLY set isIntervalRunning here
+      // If no uncompleted tasks found after the current one,
+      // then look for the first uncompleted task from the beginning of the list
+      for (let i = 0; i < startIndex; i++) {
+        if (!currentTasks[i].completed) {
+          return currentTasks[i];
+        }
+      }
 
-      // Set timer start time and duration for accurate tracking
-      setTimerStartTime(Date.now());
-      setDurationAtTimerStart(initialIntervalTime);
+      // If no uncompleted tasks are found anywhere
+      return null;
+    },
+    []
+  );
 
-      timerWorkerRef.current.postMessage({ command: 'start', delay: 1000 }); // Start worker for interval
-    }
-    showNotification(isResuming ? translations[language].timerResumed : translations[language].timerStarted, 'started');
-  }, [timeLeft, pomodoroState, pomodoroCount, intervalTimeLeft, interTaskIntervalDuration, showNotification, language, DEFAULT_POMODORO_FOCUS_DURATION, firstTaskStartTime]);
+  // Function to start a specific task (or an interval)
+  const startTimerOrInterval = useCallback(
+    (targetTask = null, isResuming = false) => {
+      // Clear any existing timer by sending a stop command to the worker
+      if (timerWorkerRef.current) {
+        timerWorkerRef.current.postMessage({ command: "stop" });
+      }
 
+      setTimerRunning(false); // Reset main timer state
+      setIsIntervalRunning(false); // Reset interval state
+
+      if (targetTask) {
+        // Starting/resuming a task
+        setCurrentTaskId(targetTask.id);
+        // Set firstTaskStartTime only if it's the very first task starting
+        if (firstTaskStartTime === null) {
+          setFirstTaskStartTime(Date.now());
+        }
+
+        let initialTime;
+        let newPomodoroState = "idle";
+        let newPomodoroCount = 0;
+
+        if (targetTask.mode === "time") {
+          initialTime = isResuming ? timeLeft : targetTask.duration;
+        } else if (targetTask.mode === "pomodoro") {
+          if (isResuming) {
+            initialTime = timeLeft;
+            newPomodoroState = pomodoroState;
+            newPomodoroCount = pomodoroCount;
+          } else {
+            initialTime =
+              targetTask.pomodoroFocusDuration ||
+              DEFAULT_POMODORO_FOCUS_DURATION;
+            newPomodoroState = "focus";
+            newPomodoroCount = 0;
+          }
+        }
+        setTimeLeft(initialTime);
+        setPomodoroState(newPomodoroState);
+        setPomodoroCount(newPomodoroCount);
+        setTimerRunning(true); // ONLY set timerRunning here
+
+        // Set timer start time and duration for accurate tracking
+        setTimerStartTime(Date.now());
+        setDurationAtTimerStart(initialTime);
+
+        timerWorkerRef.current.postMessage({ command: "start", delay: 1000 }); // Start worker for task
+      } else {
+        // Starting an inter-task interval
+        setCurrentTaskId(null);
+        const initialIntervalTime = isResuming
+          ? intervalTimeLeft
+          : interTaskIntervalDuration * 60;
+        setIntervalTimeLeft(initialIntervalTime);
+        setTimeLeft(0); // Task time is irrelevant during interval
+        setPomodoroState("idle"); // Pomodoro state is idle during interval
+        setIsIntervalRunning(true); // ONLY set isIntervalRunning here
+
+        // Set timer start time and duration for accurate tracking
+        setTimerStartTime(Date.now());
+        setDurationAtTimerStart(initialIntervalTime);
+
+        timerWorkerRef.current.postMessage({ command: "start", delay: 1000 }); // Start worker for interval
+      }
+      showNotification(
+        isResuming
+          ? translations[language].timerResumed
+          : translations[language].timerStarted,
+        "started"
+      );
+    },
+    [
+      timeLeft,
+      pomodoroState,
+      pomodoroCount,
+      intervalTimeLeft,
+      interTaskIntervalDuration,
+      showNotification,
+      language,
+      DEFAULT_POMODORO_FOCUS_DURATION,
+      firstTaskStartTime,
+    ]
+  );
 
   // eslint-disable-next-line react-hooks/exhaustive-deps, no-unused-vars
   const handleTimerEnd = useCallback(() => {
@@ -644,32 +727,45 @@ function App() {
     let shouldStartNextPhase = false; // Flag to indicate if a new phase should start immediately
 
     if (isIntervalRunning) {
-      showNotification(translations[language].interTaskBreakEnded, 'completed');
+      showNotification(translations[language].interTaskBreakEnded, "completed");
       setIsIntervalRunning(false);
       setTimerRunning(false); // Ensure main timer is off
-      timerWorkerRef.current.postMessage({ command: 'stop' }); // Stop worker
-      const nextTaskToStart = findNextTaskInSequence(tempUpdatedTasks, currentTaskId); // Use new function
+      timerWorkerRef.current.postMessage({ command: "stop" }); // Stop worker
+      const nextTaskToStart = findNextTaskInSequence(
+        tempUpdatedTasks,
+        currentTaskId
+      ); // Use new function
       if (nextTaskToStart) {
         startTimerOrInterval(nextTaskToStart, false); // Start the next task
       } else {
         // All tasks completed, handle final state
         setCurrentTaskId(null);
         setTimeLeft(0);
-        setPomodoroState('idle');
-        showNotification(translations[language].allTasksCompletedNotification, 'all-tasks-completed');
+        setPomodoroState("idle");
+        showNotification(
+          translations[language].allTasksCompletedNotification,
+          "all-tasks-completed"
+        );
       }
     } else if (currentTaskId) {
-      const currentTask = tempUpdatedTasks.find(task => task.id === currentTaskId);
+      const currentTask = tempUpdatedTasks.find(
+        (task) => task.id === currentTaskId
+      );
       if (!currentTask) return;
 
-      if (currentTask.mode === 'time') {
+      if (currentTask.mode === "time") {
         // Mark as completed naturally (not skipped)
-        tempUpdatedTasks = tempUpdatedTasks.map(task =>
-          task.id === currentTaskId ? { ...task, completed: true, skipped: false } : task
+        tempUpdatedTasks = tempUpdatedTasks.map((task) =>
+          task.id === currentTaskId
+            ? { ...task, completed: true, skipped: false }
+            : task
         );
-        showNotification(translations[language].taskCompleted, 'completed');
-        
-        const nextTaskToStart = findNextTaskInSequence(tempUpdatedTasks, currentTaskId); // Use new function
+        showNotification(translations[language].taskCompleted, "completed");
+
+        const nextTaskToStart = findNextTaskInSequence(
+          tempUpdatedTasks,
+          currentTaskId
+        ); // Use new function
         if (nextTaskToStart) {
           setIsIntervalRunning(true);
           setIntervalTimeLeft(interTaskIntervalDuration * 60);
@@ -679,64 +775,88 @@ function App() {
           setTimerStartTime(Date.now());
           setDurationAtTimerStart(interTaskIntervalDuration * 60);
 
-          timerWorkerRef.current.postMessage({ command: 'start', delay: 1000 }); // Start worker for interval
+          timerWorkerRef.current.postMessage({ command: "start", delay: 1000 }); // Start worker for interval
         } else {
           // All tasks completed, handle final state
           setCurrentTaskId(null);
           setTimeLeft(0);
-          setPomodoroState('idle');
+          setPomodoroState("idle");
           setTimerRunning(false);
-          timerWorkerRef.current.postMessage({ command: 'stop' }); // Stop worker
-          showNotification(translations[language].allTasksCompletedNotification, 'all-tasks-completed');
+          timerWorkerRef.current.postMessage({ command: "stop" }); // Stop worker
+          showNotification(
+            translations[language].allTasksCompletedNotification,
+            "all-tasks-completed"
+          );
         }
-
-      } else if (currentTask.mode === 'pomodoro') {
+      } else if (currentTask.mode === "pomodoro") {
         let newPomodoroCount = pomodoroCount;
-        const focusDuration = currentTask.pomodoroFocusDuration || DEFAULT_POMODORO_FOCUS_DURATION;
-        const shortBreakDuration = currentTask.pomodoroShortBreakDuration || DEFAULT_POMODORO_SHORT_BREAK_DURATION;
-        const longBreakDuration = currentTask.pomodoroLongBreakDuration || DEFAULT_POMODORO_LONG_BREAK_DURATION;
+        const focusDuration =
+          currentTask.pomodoroFocusDuration || DEFAULT_POMODORO_FOCUS_DURATION;
+        const shortBreakDuration =
+          currentTask.pomodoroShortBreakDuration ||
+          DEFAULT_POMODORO_SHORT_BREAK_DURATION;
+        const longBreakDuration =
+          currentTask.pomodoroLongBreakDuration ||
+          DEFAULT_POMODORO_LONG_BREAK_DURATION;
 
-        if (pomodoroState === 'focus') {
+        if (pomodoroState === "focus") {
           newPomodoroCount++;
-          showNotification(translations[language].focusSessionEnded, 'focus-ended');
+          showNotification(
+            translations[language].focusSessionEnded,
+            "focus-ended"
+          );
           if (newPomodoroCount % currentTask.pomodoroFocusSessions === 0) {
             setTimeLeft(longBreakDuration);
-            setPomodoroState('longBreak');
+            setPomodoroState("longBreak");
             setDurationAtTimerStart(longBreakDuration); // Set duration for accurate tracking
           } else {
             setTimeLeft(shortBreakDuration);
-            setPomodoroState('shortBreak');
+            setPomodoroState("shortBreak");
             setDurationAtTimerStart(shortBreakDuration); // Set duration for accurate tracking
           }
           setPomodoroCount(newPomodoroCount);
           shouldStartNextPhase = true; // Indicate that the timer should continue
-        } else if (pomodoroState === 'shortBreak') {
-          showNotification(translations[language].shortBreakEnded, 'short-break-ended');
+        } else if (pomodoroState === "shortBreak") {
+          showNotification(
+            translations[language].shortBreakEnded,
+            "short-break-ended"
+          );
           setTimeLeft(focusDuration);
-          setPomodoroState('focus');
+          setPomodoroState("focus");
           setDurationAtTimerStart(focusDuration); // Set duration for accurate tracking
           shouldStartNextPhase = true; // Indicate that the timer should continue
-        } else if (pomodoroState === 'longBreak') {
+        } else if (pomodoroState === "longBreak") {
           // Mark as completed naturally (not skipped)
-          tempUpdatedTasks = tempUpdatedTasks.map(task =>
-            task.id === currentTaskId ? { ...task, completed: true, skipped: false } : task
+          tempUpdatedTasks = tempUpdatedTasks.map((task) =>
+            task.id === currentTaskId
+              ? { ...task, completed: true, skipped: false }
+              : task
           );
-          showNotification(translations[language].longBreakEnded, 'long-break-ended');
+          showNotification(
+            translations[language].longBreakEnded,
+            "long-break-ended"
+          );
           setPomodoroCount(0); // Reset for next task's Pomodoro
-          setPomodoroState('idle'); // Set to idle as cycle ends
+          setPomodoroState("idle"); // Set to idle as cycle ends
 
           // After a long break, find the next task directly, without inter-task interval
-          const nextTaskToStart = findNextTaskInSequence(tempUpdatedTasks, currentTaskId); // Use new function
+          const nextTaskToStart = findNextTaskInSequence(
+            tempUpdatedTasks,
+            currentTaskId
+          ); // Use new function
           if (nextTaskToStart) {
             startTimerOrInterval(nextTaskToStart, false); // Start the next task
           } else {
             // All tasks completed, handle final state
             setCurrentTaskId(null);
             setTimeLeft(0);
-            setPomodoroState('idle');
+            setPomodoroState("idle");
             setTimerRunning(false); // Ensure main timer is off
-            timerWorkerRef.current.postMessage({ command: 'stop' }); // Stop worker
-            showNotification(translations[language].allTasksCompletedNotification, 'all-tasks-completed');
+            timerWorkerRef.current.postMessage({ command: "stop" }); // Stop worker
+            showNotification(
+              translations[language].allTasksCompletedNotification,
+              "all-tasks-completed"
+            );
           }
           setTasks(tempUpdatedTasks); // Update tasks state
           return; // Exit as next task/stop is handled
@@ -746,19 +866,38 @@ function App() {
 
     setTasks(tempUpdatedTasks); // Ensure tasks state is updated
     // This single check at the end will start the timer if a new phase was set
-    if (shouldStartNextPhase && !isIntervalRunning) { // Only start if it's a Pomodoro phase transition and not an interval
-        setTimerRunning(true);
-        setTimerStartTime(Date.now()); // Set timer start time for accurate tracking
-        timerWorkerRef.current.postMessage({ command: 'start', delay: 1000 }); // Start worker for task
+    if (shouldStartNextPhase && !isIntervalRunning) {
+      // Only start if it's a Pomodoro phase transition and not an interval
+      setTimerRunning(true);
+      setTimerStartTime(Date.now()); // Set timer start time for accurate tracking
+      timerWorkerRef.current.postMessage({ command: "start", delay: 1000 }); // Start worker for task
     }
     // If it's an interval, setIsIntervalRunning(true) already handles it.
     // If it's the end of a long break, the logic already handles starting the next task or stopping.
-
-  }, [currentTaskId, tasks, pomodoroState, pomodoroCount, isIntervalRunning, startTimerOrInterval, showNotification, language, DEFAULT_POMODORO_FOCUS_DURATION, DEFAULT_POMODORO_SHORT_BREAK_DURATION, DEFAULT_POMODORO_LONG_BREAK_DURATION, interTaskIntervalDuration, findNextTaskInSequence]);
+  }, [
+    currentTaskId,
+    tasks,
+    pomodoroState,
+    pomodoroCount,
+    isIntervalRunning,
+    startTimerOrInterval,
+    showNotification,
+    language,
+    DEFAULT_POMODORO_FOCUS_DURATION,
+    DEFAULT_POMODORO_SHORT_BREAK_DURATION,
+    DEFAULT_POMODORO_LONG_BREAK_DURATION,
+    interTaskIntervalDuration,
+    findNextTaskInSequence,
+  ]);
 
   // Effect to call handleTimerEnd when timeLeft or intervalTimeLeft reaches 0
   useEffect(() => {
-    if (timerRunning && timeLeft <= 0 && !isIntervalRunning && currentTaskId !== null) {
+    if (
+      timerRunning &&
+      timeLeft <= 0 &&
+      !isIntervalRunning &&
+      currentTaskId !== null
+    ) {
       // Only call handleTimerEnd if timeLeft has truly reached 0 for a task
       // and the timer was running, and it's not an interval.
       handleTimerEnd();
@@ -767,26 +906,32 @@ function App() {
       // and the interval was running.
       handleTimerEnd();
     }
-  }, [timeLeft, intervalTimeLeft, timerRunning, isIntervalRunning, handleTimerEnd, currentTaskId]);
-
+  }, [
+    timeLeft,
+    intervalTimeLeft,
+    timerRunning,
+    isIntervalRunning,
+    handleTimerEnd,
+    currentTaskId,
+  ]);
 
   // Função para pausar o timer
   const pauseTimer = useCallback(() => {
     if (timerWorkerRef.current) {
-      timerWorkerRef.current.postMessage({ command: 'stop' });
+      timerWorkerRef.current.postMessage({ command: "stop" });
     }
     setTimerRunning(false);
-    showNotification(translations[language].timerPaused, 'paused');
+    showNotification(translations[language].timerPaused, "paused");
   }, [showNotification, language]);
 
   // Função para resetar o timer da tarefa atual (não reseta tempos globais)
   const resetTimer = useCallback(() => {
     if (timerWorkerRef.current) {
-      timerWorkerRef.current.postMessage({ command: 'stop' });
+      timerWorkerRef.current.postMessage({ command: "stop" });
     }
     setTimerRunning(false);
     setTimeLeft(0);
-    setPomodoroState('idle');
+    setPomodoroState("idle");
     setPomodoroCount(0);
     setIsIntervalRunning(false);
     setIntervalTimeLeft(0);
@@ -794,7 +939,7 @@ function App() {
     setTimerStartTime(null); // Clear timer start time
     setDurationAtTimerStart(0); // Clear duration at timer start
     // Do NOT reset firstTaskStartTime here, as it's meant to be the global start.
-    showNotification(translations[language].taskReset, 'reset');
+    showNotification(translations[language].taskReset, "reset");
   }, [showNotification, language]);
 
   // Função para resetar todos os tempos (globais e da tarefa atual)
@@ -804,15 +949,17 @@ function App() {
     setSkippedTime(0); // Reset skipped time
     setFirstTaskStartTime(null); // Reset first task start time
     // Reset completion status and skipped status of all tasks
-    setTasks(prevTasks => prevTasks.map(task => ({ ...task, completed: false, skipped: false })));
-    showNotification(translations[language].allTasksReset, 'reset');
+    setTasks((prevTasks) =>
+      prevTasks.map((task) => ({ ...task, completed: false, skipped: false }))
+    );
+    showNotification(translations[language].allTasksReset, "reset");
   }, [resetTimer, showNotification, language]);
 
   // Function to skip current phase
   const skipCurrentPhase = useCallback(() => {
     // Clear the active timer immediately by stopping the worker
     if (timerWorkerRef.current) {
-      timerWorkerRef.current.postMessage({ command: 'stop' });
+      timerWorkerRef.current.postMessage({ command: "stop" });
     }
 
     setTimerRunning(false); // Stop the main timer
@@ -824,33 +971,46 @@ function App() {
 
     if (isIntervalRunning) {
       timeToSkip = intervalTimeLeft;
-      setSkippedTime(prev => prev + timeToSkip);
-      showNotification(translations[language].interTaskBreakSkipped, 'skipped');
-      const nextTaskToStart = findNextTaskInSequence(tempUpdatedTasks, currentTaskId); // Use new function
+      setSkippedTime((prev) => prev + timeToSkip);
+      showNotification(translations[language].interTaskBreakSkipped, "skipped");
+      const nextTaskToStart = findNextTaskInSequence(
+        tempUpdatedTasks,
+        currentTaskId
+      ); // Use new function
       if (nextTaskToStart) {
         startTimerOrInterval(nextTaskToStart, false);
       } else {
         // All tasks completed, handle final state
         setCurrentTaskId(null);
         setTimeLeft(0);
-        setPomodoroState('idle');
-        showNotification(translations[language].allTasksCompletedNotification, 'all-tasks-completed');
+        setPomodoroState("idle");
+        showNotification(
+          translations[language].allTasksCompletedNotification,
+          "all-tasks-completed"
+        );
       }
     } else if (currentTaskId) {
-      const currentTask = tempUpdatedTasks.find(task => task.id === currentTaskId);
+      const currentTask = tempUpdatedTasks.find(
+        (task) => task.id === currentTaskId
+      );
       if (!currentTask) return;
 
       timeToSkip = timeLeft;
-      setSkippedTime(prev => prev + timeToSkip);
+      setSkippedTime((prev) => prev + timeToSkip);
 
-      if (currentTask.mode === 'time') {
+      if (currentTask.mode === "time") {
         // Mark as skipped
-        tempUpdatedTasks = tempUpdatedTasks.map(task =>
-          task.id === currentTaskId ? { ...task, completed: true, skipped: true } : task
+        tempUpdatedTasks = tempUpdatedTasks.map((task) =>
+          task.id === currentTaskId
+            ? { ...task, completed: true, skipped: true }
+            : task
         );
-        showNotification(translations[language].taskSkipped, 'skipped');
-        
-        const nextTaskToStart = findNextTaskInSequence(tempUpdatedTasks, currentTaskId); // Use new function
+        showNotification(translations[language].taskSkipped, "skipped");
+
+        const nextTaskToStart = findNextTaskInSequence(
+          tempUpdatedTasks,
+          currentTaskId
+        ); // Use new function
         if (nextTaskToStart) {
           setIsIntervalRunning(true);
           setIntervalTimeLeft(interTaskIntervalDuration * 60);
@@ -860,92 +1020,137 @@ function App() {
           setTimerStartTime(Date.now());
           setDurationAtTimerStart(interTaskIntervalDuration * 60);
 
-          timerWorkerRef.current.postMessage({ command: 'start', delay: 1000 }); // Start worker for interval
+          timerWorkerRef.current.postMessage({ command: "start", delay: 1000 }); // Start worker for interval
         } else {
           // All tasks completed, handle final state
           setCurrentTaskId(null);
           setTimeLeft(0);
-          setPomodoroState('idle');
+          setPomodoroState("idle");
           setTimerRunning(false);
-          showNotification(translations[language].allTasksCompletedNotification, 'all-tasks-completed');
+          showNotification(
+            translations[language].allTasksCompletedNotification,
+            "all-tasks-completed"
+          );
         }
-
-      } else if (currentTask.mode === 'pomodoro') {
-        let phaseName = '';
+      } else if (currentTask.mode === "pomodoro") {
+        let phaseName = "";
         let newPomodoroCount = pomodoroCount;
 
-        const focusDuration = currentTask.pomodoroFocusDuration || DEFAULT_POMODORO_FOCUS_DURATION;
-        const shortBreakDuration = currentTask.pomodoroShortBreakDuration || DEFAULT_POMODORO_SHORT_BREAK_DURATION;
-        const longBreakDuration = currentTask.pomodoroLongBreakDuration || DEFAULT_POMODORO_LONG_BREAK_DURATION;
+        const focusDuration =
+          currentTask.pomodoroFocusDuration || DEFAULT_POMODORO_FOCUS_DURATION;
+        const shortBreakDuration =
+          currentTask.pomodoroShortBreakDuration ||
+          DEFAULT_POMODORO_SHORT_BREAK_DURATION;
+        const longBreakDuration =
+          currentTask.pomodoroLongBreakDuration ||
+          DEFAULT_POMODORO_LONG_BREAK_DURATION;
 
-        if (pomodoroState === 'focus') {
+        if (pomodoroState === "focus") {
           phaseName = translations[language].focus;
           newPomodoroCount++;
           if (newPomodoroCount % currentTask.pomodoroFocusSessions === 0) {
             setTimeLeft(longBreakDuration);
-            setPomodoroState('longBreak');
+            setPomodoroState("longBreak");
             setDurationAtTimerStart(longBreakDuration); // Set duration for accurate tracking
           } else {
             setTimeLeft(shortBreakDuration);
-            setPomodoroState('shortBreak');
+            setPomodoroState("shortBreak");
             setDurationAtTimerStart(shortBreakDuration); // Set duration for accurate tracking
           }
           setPomodoroCount(newPomodoroCount);
           shouldStartNextPhase = true;
-        } else if (pomodoroState === 'shortBreak') {
+        } else if (pomodoroState === "shortBreak") {
           phaseName = translations[language].shortBreak;
           setTimeLeft(focusDuration);
-          setPomodoroState('focus');
+          setPomodoroState("focus");
           setDurationAtTimerStart(focusDuration); // Set duration for accurate tracking
           shouldStartNextPhase = true;
-        } else if (pomodoroState === 'longBreak') {
+        } else if (pomodoroState === "longBreak") {
           // Mark as skipped
-          tempUpdatedTasks = tempUpdatedTasks.map(task =>
-            task.id === currentTaskId ? { ...task, completed: true, skipped: true } : task
+          tempUpdatedTasks = tempUpdatedTasks.map((task) =>
+            task.id === currentTaskId
+              ? { ...task, completed: true, skipped: true }
+              : task
           );
-          showNotification(translations[language].longBreakEnded, 'long-break-ended');
+          showNotification(
+            translations[language].longBreakEnded,
+            "long-break-ended"
+          );
           setPomodoroCount(0);
-          setPomodoroState('idle');
+          setPomodoroState("idle");
 
           // After skipping a long break, find the next task directly, without inter-task interval
-          const nextTaskToStart = findNextTaskInSequence(tempUpdatedTasks, currentTaskId); // Use new function
+          const nextTaskToStart = findNextTaskInSequence(
+            tempUpdatedTasks,
+            currentTaskId
+          ); // Use new function
           if (nextTaskToStart) {
             startTimerOrInterval(nextTaskToStart, false);
           } else {
             // All tasks completed, handle final state
             setCurrentTaskId(null);
             setTimeLeft(0);
-            setPomodoroState('idle');
+            setPomodoroState("idle");
             setTimerRunning(false); // Ensure main timer is off
-            showNotification(translations[language].allTasksCompletedNotification, 'all-tasks-completed');
+            showNotification(
+              translations[language].allTasksCompletedNotification,
+              "all-tasks-completed"
+            );
           }
         }
-        showNotification(translations[language].pomodoroPhaseSkipped.replace('{phase}', phaseName), 'skipped');
+        showNotification(
+          translations[language].pomodoroPhaseSkipped.replace(
+            "{phase}",
+            phaseName
+          ),
+          "skipped"
+        );
       }
     }
     setTasks(tempUpdatedTasks); // Update tasks state
 
     // This single check at the end will start the timer if a new phase was set
-    if (shouldStartNextPhase && !isIntervalRunning) { // Only start if it's a Pomodoro phase transition and not an interval
-        setTimerRunning(true);
-        setTimerStartTime(Date.now()); // Set timer start time for accurate tracking
-        timerWorkerRef.current.postMessage({ command: 'start', delay: 1000 }); // Start worker for task
+    if (shouldStartNextPhase && !isIntervalRunning) {
+      // Only start if it's a Pomodoro phase transition and not an interval
+      setTimerRunning(true);
+      setTimerStartTime(Date.now()); // Set timer start time for accurate tracking
+      timerWorkerRef.current.postMessage({ command: "start", delay: 1000 }); // Start worker for task
     }
     // If it's an interval, setIsIntervalRunning(true) already handles it.
     // If it's the end of a long break, the logic already handles starting the next task or stopping.
-
-  }, [currentTaskId, isIntervalRunning, tasks, pomodoroState, pomodoroCount, timeLeft, intervalTimeLeft, startTimerOrInterval, showNotification, language, interTaskIntervalDuration, DEFAULT_POMODORO_FOCUS_DURATION, DEFAULT_POMODORO_SHORT_BREAK_DURATION, DEFAULT_POMODORO_LONG_BREAK_DURATION, findNextTaskInSequence]);
+  }, [
+    currentTaskId,
+    isIntervalRunning,
+    tasks,
+    pomodoroState,
+    pomodoroCount,
+    timeLeft,
+    intervalTimeLeft,
+    startTimerOrInterval,
+    showNotification,
+    language,
+    interTaskIntervalDuration,
+    DEFAULT_POMODORO_FOCUS_DURATION,
+    DEFAULT_POMODORO_SHORT_BREAK_DURATION,
+    DEFAULT_POMODORO_LONG_BREAK_DURATION,
+    findNextTaskInSequence,
+  ]);
 
   // Função para calcular o tempo total estimado de todas as tarefas
   const calculateTotalEstimatedTime = useCallback(() => {
     let totalSeconds = 0;
     tasks.forEach((task, index) => {
-      if (task.mode === 'time') {
+      if (task.mode === "time") {
         totalSeconds += task.duration;
-      } else if (task.mode === 'pomodoro') {
-        const focusDur = task.pomodoroFocusDuration || DEFAULT_POMODORO_FOCUS_DURATION;
-        const shortBreakDur = task.pomodoroShortBreakDuration || DEFAULT_POMODORO_SHORT_BREAK_DURATION;
-        const longBreakDur = task.pomodoroLongBreakDuration || DEFAULT_POMODORO_LONG_BREAK_DURATION;
+      } else if (task.mode === "pomodoro") {
+        const focusDur =
+          task.pomodoroFocusDuration || DEFAULT_POMODORO_FOCUS_DURATION;
+        const shortBreakDur =
+          task.pomodoroShortBreakDuration ||
+          DEFAULT_POMODORO_SHORT_BREAK_DURATION;
+        const longBreakDur =
+          task.pomodoroLongBreakDuration ||
+          DEFAULT_POMODORO_LONG_BREAK_DURATION;
 
         totalSeconds += task.pomodoroFocusSessions * focusDur;
         if (task.pomodoroFocusSessions > 1) {
@@ -955,54 +1160,67 @@ function App() {
       }
       // Add inter-task interval only if it's not the last task AND it's not a pomodoro long break ending
       const isLastTask = index === tasks.length - 1;
-      
+
       // If it's not the last task, and it's not a pomodoro long break ending (which transitions directly to next task or completion)
       // This condition needs to be more precise for pomodoro long break.
       // For simplicity, let's assume inter-task interval is added between any two tasks,
       // and the end-of-all-tasks logic handles the final state.
       // The problem is about *starting* the interval when it shouldn't.
       // The `handleTimerEnd` and `skipCurrentPhase` logic should prevent this.
-      if (!isLastTask) { // Simplified condition to add interval between tasks
+      if (!isLastTask) {
+        // Simplified condition to add interval between tasks
         totalSeconds += interTaskIntervalDuration * 60;
       }
     });
     return totalSeconds;
-  }, [tasks, DEFAULT_POMODORO_FOCUS_DURATION, DEFAULT_POMODORO_SHORT_BREAK_DURATION, DEFAULT_POMODORO_LONG_BREAK_DURATION, interTaskIntervalDuration]);
+  }, [
+    tasks,
+    DEFAULT_POMODORO_FOCUS_DURATION,
+    DEFAULT_POMODORO_SHORT_BREAK_DURATION,
+    DEFAULT_POMODORO_LONG_BREAK_DURATION,
+    interTaskIntervalDuration,
+  ]);
 
   const totalEstimatedTime = calculateTotalEstimatedTime();
 
   // Calcula o tempo restante total (tempo da tarefa atual + tempo das tarefas futuras)
-  const totalRemainingTime = totalEstimatedTime - (totalGlobalElapsedTime + skippedTime);
+  const totalRemainingTime =
+    totalEstimatedTime - (totalGlobalElapsedTime + skippedTime);
 
   // Calcula o tempo estimado de conclusão
-  const estimatedCompletionDate = new Date(Date.now() + totalRemainingTime * 1000);
-  const estimatedCompletionTime = estimatedCompletionDate.toLocaleTimeString(language, { hour: '2-digit', minute: '2-digit' });
+  const estimatedCompletionDate = new Date(
+    Date.now() + totalRemainingTime * 1000
+  );
+  const estimatedCompletionTime = estimatedCompletionDate.toLocaleTimeString(
+    language,
+    { hour: "2-digit", minute: "2-digit" }
+  );
 
   // Function to determine timer colors based on Pomodoro state and dark mode
   const getTimerColors = useCallback(() => {
-    let strokeColor = '';
-    let textColor = '';
+    let strokeColor = "";
+    let textColor = "";
 
     if (isIntervalRunning) {
-      strokeColor = darkMode ? '#a78bfa' : '#8b5cf6'; // purple-400 / purple-500
-      textColor = darkMode ? '#d8b4fe' : '#6b21a8'; // purple-300 / purple-800
+      strokeColor = darkMode ? "#a78bfa" : "#8b5cf6"; // purple-400 / purple-500
+      textColor = darkMode ? "#d8b4fe" : "#6b21a8"; // purple-300 / purple-800
     } else {
       switch (pomodoroState) {
-        case 'focus':
-          strokeColor = darkMode ? '#f87171' : '#ef4444'; // red-400 / red-500
-          textColor = darkMode ? '#fca5a5' : '#b91c1c'; // red-300 / red-800
+        case "focus":
+          strokeColor = darkMode ? "#f87171" : "#ef4444"; // red-400 / red-500
+          textColor = darkMode ? "#fca5a5" : "#b91c1c"; // red-300 / red-800
           break;
-        case 'shortBreak':
-          strokeColor = darkMode ? '#4ade80' : '#22c55e'; // green-400 / green-500
-          textColor = darkMode ? '#86efac' : '#166534'; // green-300 / green-800
+        case "shortBreak":
+          strokeColor = darkMode ? "#4ade80" : "#22c55e"; // green-400 / green-500
+          textColor = darkMode ? "#86efac" : "#166534"; // green-300 / green-800
           break;
-        case 'longBreak':
-          strokeColor = darkMode ? '#60a5fa' : '#3b82f6'; // blue-400 / blue-500
-          textColor = darkMode ? '#93c5fd' : '#1e40af'; // blue-300 / blue-800
+        case "longBreak":
+          strokeColor = darkMode ? "#60a5fa" : "#3b82f6"; // blue-400 / blue-500
+          textColor = darkMode ? "#93c5fd" : "#1e40af"; // blue-300 / blue-800
           break;
         default: // idle or time mode
-          strokeColor = darkMode ? '#818cf8' : '#4f46e5'; // indigo-400 / indigo-600
-          textColor = darkMode ? '#c7d2fe' : '#3730a3'; // indigo-300 / indigo-800
+          strokeColor = darkMode ? "#818cf8" : "#4f46e5"; // indigo-400 / indigo-600
+          textColor = darkMode ? "#c7d2fe" : "#3730a3"; // indigo-300 / indigo-800
           break;
       }
     }
@@ -1015,7 +1233,9 @@ function App() {
   const formatTime = (seconds) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
-    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    return `${minutes.toString().padStart(2, "0")}:${remainingSeconds
+      .toString()
+      .padStart(2, "0")}`;
   };
 
   // Helper function to determine current phase emoji
@@ -1117,7 +1337,8 @@ function App() {
   };
 
   // Function to add a new task
-  const addTask = async (e) => { // Made async to await Tone.start()
+  const addTask = async (e) => {
+    // Made async to await Tone.start()
     e.preventDefault();
     if (!taskName.trim()) return;
 
@@ -1126,10 +1347,13 @@ function App() {
       try {
         await Tone.start();
         setIsAudioContextStarted(true);
-        console.log('Contexto de áudio Tone.js iniciado ao adicionar tarefa.');
+        console.log("Contexto de áudio Tone.js iniciado ao adicionar tarefa.");
       } catch (error) {
-        console.error('Falha ao iniciar o contexto de áudio Tone.js ao adicionar tarefa:', error);
-        showNotification('Falha ao iniciar o áudio. Tente novamente.', 'error');
+        console.error(
+          "Falha ao iniciar o contexto de áudio Tone.js ao adicionar tarefa:",
+          error
+        );
+        showNotification("Falha ao iniciar o áudio. Tente novamente.", "error");
         return; // Impede a execução se o áudio falhar
       }
     }
@@ -1185,7 +1409,7 @@ function App() {
       setPomodoroCount(0);
       setIsIntervalRunning(false);
       if (timerWorkerRef.current) {
-        timerWorkerRef.current.postMessage({ command: 'stop' }); // Stop worker
+        timerWorkerRef.current.postMessage({ command: "stop" }); // Stop worker
       }
       showNotification(
         translations[language].allTasksCompletedNotification,
@@ -1195,14 +1419,24 @@ function App() {
     }
   }, [tasks, currentTaskId, showNotification, language]); // Depend on tasks and currentTaskId
 
-
   // Reusable NumberInput component with custom arrows
-  const NumberInput = ({ id, label, value, onChange, min, max, unit, darkMode, translationKey, icon }) => {
+  const NumberInput = ({
+    id,
+    label,
+    value,
+    onChange,
+    min,
+    max,
+    unit,
+    darkMode,
+    translationKey,
+    icon,
+  }) => {
     const [isHovered, setIsHovered] = useState(false);
 
     const handleChange = (e) => {
       const inputValue = e.target.value;
-      if (inputValue === '') {
+      if (inputValue === "") {
         onChange(0); // Treat empty string as 0
       } else {
         const parsedValue = parseInt(inputValue, 10);
@@ -1214,25 +1448,31 @@ function App() {
 
     const handleIncrement = () => {
       const numValue = value || 0; // Use current value, fallback to 0
-      const newValue = (max !== undefined && numValue + 1 > max ? max : numValue + 1);
+      const newValue =
+        max !== undefined && numValue + 1 > max ? max : numValue + 1;
       onChange(newValue);
     };
 
     const handleDecrement = () => {
       const numValue = value || 0; // Use current value, fallback to 0
-      const newValue = (min !== undefined && numValue - 1 < min ? min : numValue - 1);
+      const newValue =
+        min !== undefined && numValue - 1 < min ? min : numValue - 1;
       onChange(newValue);
     };
 
     return (
       <div
-        className={`flex flex-col items-center p-2 sm:p-4 rounded-lg relative ${darkMode ? 'border border-gray-600' : 'border border-gray-200'} transition-colors duration-300 group`}
+        className={`flex flex-col items-center p-2 sm:p-4 rounded-lg relative ${
+          darkMode ? "border border-gray-600" : "border border-gray-200"
+        } transition-colors duration-300 group`}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
         <label
           htmlFor={id}
-          className={`absolute left-3 px-1 text-xs sm:text-sm font-medium z-10 top-0 -translate-y-1/2 ${darkMode ? 'bg-gray-800 text-gray-300' : 'bg-white text-gray-600'} transition-colors duration-300`}
+          className={`absolute left-3 px-1 text-xs sm:text-sm font-medium z-10 top-0 -translate-y-1/2 ${
+            darkMode ? "bg-gray-800 text-gray-300" : "bg-white text-gray-600"
+          } transition-colors duration-300`}
         >
           {translations[language][translationKey]}
         </label>
@@ -1241,43 +1481,90 @@ function App() {
           <input
             type="number"
             id={id}
-            className={`text-4xl sm:text-5xl font-extrabold ${darkMode ? 'text-indigo-300' : 'text-indigo-800'} w-20 sm:w-24 text-center !bg-transparent focus:outline-none py-1 sm:py-2 px-2 sm:px-3 !focus:bg-transparent transition-colors duration-300 custom-number-input`}
-            value={value === 0 ? '' : value} // Display empty string if value is 0
+            className={`text-4xl sm:text-5xl font-extrabold ${
+              darkMode ? "text-indigo-300" : "text-indigo-800"
+            } w-20 sm:w-24 text-center !bg-transparent focus:outline-none py-1 sm:py-2 px-2 sm:px-3 !focus:bg-transparent transition-colors duration-300 custom-number-input`}
+            value={value === 0 ? "" : value} // Display empty string if value is 0
             onChange={handleChange}
             min={min}
             max={max}
             required
             autoComplete="off"
           />
-          <div className={`flex flex-col space-y-0.5 sm:space-y-1 transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
+          <div
+            className={`flex flex-col space-y-0.5 sm:space-y-1 transition-opacity duration-300 ${
+              isHovered ? "opacity-100" : "opacity-0"
+            }`}
+          >
             <button
               type="button"
               onClick={handleIncrement}
-              className={`p-0.5 sm:p-1 rounded-full ${darkMode ? 'bg-indigo-700 text-indigo-300' : 'bg-indigo-200 text-indigo-700'} hover:bg-indigo-300 focus:outline-none transition-colors duration-200`}
+              className={`p-0.5 sm:p-1 rounded-full ${
+                darkMode
+                  ? "bg-indigo-700 text-indigo-300"
+                  : "bg-indigo-200 text-indigo-700"
+              } hover:bg-indigo-300 focus:outline-none transition-colors duration-200`}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-3 w-3 sm:h-4 sm:w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M5 15l7-7 7 7"
+                />
               </svg>
             </button>
             <button
               type="button"
               onClick={handleDecrement}
-              className={`p-0.5 sm:p-1 rounded-full ${darkMode ? 'bg-indigo-700 text-indigo-300' : 'bg-indigo-200 text-indigo-700'} hover:bg-indigo-300 focus:outline-none transition-colors duration-200`}
+              className={`p-0.5 sm:p-1 rounded-full ${
+                darkMode
+                  ? "bg-indigo-700 text-indigo-300"
+                  : "bg-indigo-200 text-indigo-700"
+              } hover:bg-indigo-300 focus:outline-none transition-colors duration-200`}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-3 w-3 sm:h-4 sm:w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </button>
           </div>
         </div>
-        {unit && <span className={`text-xs sm:text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{unit}</span>}
+        {unit && (
+          <span
+            className={`text-xs sm:text-sm ${
+              darkMode ? "text-gray-400" : "text-gray-500"
+            }`}
+          >
+            {unit}
+          </span>
+        )}
       </div>
     );
   };
 
-
   return (
-    <div className={`min-h-screen ${darkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-100 text-gray-800'} flex flex-col items-center p-4 font-inter transition-colors duration-300`}>
+    <div
+      className={`min-h-screen ${
+        darkMode ? "bg-gray-900 text-gray-100" : "bg-gray-100 text-gray-800"
+      } flex flex-col items-center p-4 font-inter transition-colors duration-300`}
+    >
       {/* Estilos globais para ocultar as setas de entrada numérica */}
       <style>
         {`
@@ -1291,32 +1578,81 @@ function App() {
         }
         `}
       </style>
-      <div className={`p-4 sm:p-8 rounded-lg shadow-md w-full max-w-2xl ${darkMode ? 'bg-gray-800 text-gray-100' : 'bg-white'} transition-colors duration-300`}>
+      <div
+        className={`p-4 sm:p-8 rounded-lg shadow-md w-full max-w-2xl ${
+          darkMode ? "bg-gray-800 text-gray-100" : "bg-white"
+        } transition-colors duration-300`}
+      >
         <div className="flex justify-between items-center mb-6">
-          <h1 className={`text-2xl sm:text-3xl font-bold ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>{translations[language].taskManager}</h1>
+          <h1
+            className={`text-2xl sm:text-3xl font-bold ${
+              darkMode ? "text-gray-100" : "text-gray-800"
+            }`}
+          >
+            {translations[language].taskManager}
+          </h1>
           <div className="flex space-x-2">
             <button
               onClick={() => setShowOptions(true)}
-              className={`p-2 rounded-full ${darkMode ? 'bg-gray-700 text-indigo-300' : 'bg-indigo-200 text-indigo-700'} transition-colors duration-300`}
+              className={`p-2 rounded-full ${
+                darkMode
+                  ? "bg-gray-700 text-indigo-300"
+                  : "bg-indigo-200 text-indigo-700"
+              } transition-colors duration-300`}
               title={translations[language].options}
             >
               {/* Ícone de três pontos verticais */}
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 sm:h-6 sm:w-6" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s-.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5 sm:h-6 sm:w-6"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s-.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
               </svg>
             </button>
             <button
               onClick={() => setDarkMode(!darkMode)}
-              className={`p-2 rounded-full ${darkMode ? 'bg-gray-700 text-yellow-300' : 'bg-gray-200 text-gray-700'} transition-colors duration-300`}
-              title={darkMode ? translations[language].switchLightMode : translations[language].switchDarkMode}
+              className={`p-2 rounded-full ${
+                darkMode
+                  ? "bg-gray-700 text-yellow-300"
+                  : "bg-gray-200 text-gray-700"
+              } transition-colors duration-300`}
+              title={
+                darkMode
+                  ? translations[language].switchLightMode
+                  : translations[language].switchDarkMode
+              }
             >
               {darkMode ? (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h1M4 12H3m15.325 5.924l-.707.707M6.343 6.343l-.707-.707m12.728 0l-.707-.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 sm:h-6 sm:w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 3v1m0 16v1m9-9h1M4 12H3m15.325 5.924l-.707.707M6.343 6.343l-.707-.707m12.728 0l-.707-.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                  />
                 </svg>
               ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 sm:h-6 sm:w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                  />
                 </svg>
               )}
             </button>
@@ -1326,22 +1662,47 @@ function App() {
         {/* Modal de Opções */}
         {showOptions && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className={`p-4 sm:p-8 rounded-lg shadow-md w-full max-w-md ${darkMode ? 'bg-gray-800 text-gray-100' : 'bg-white'} transition-colors duration-300 relative`}>
-              <h2 className={`text-xl sm:text-2xl font-bold mb-4 sm:mb-6 ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>{translations[language].options}</h2>
+            <div
+              className={`p-4 sm:p-8 rounded-lg shadow-md w-full max-w-md ${
+                darkMode ? "bg-gray-800 text-gray-100" : "bg-white"
+              } transition-colors duration-300 relative`}
+            >
+              <h2
+                className={`text-xl sm:text-2xl font-bold mb-4 sm:mb-6 ${
+                  darkMode ? "text-gray-100" : "text-gray-800"
+                }`}
+              >
+                {translations[language].options}
+              </h2>
 
               <button
                 onClick={() => setShowOptions(false)}
                 className="absolute top-2 right-2 sm:top-4 sm:right-4 p-1 sm:p-2 rounded-full text-gray-400 hover:text-gray-600 focus:outline-none"
                 title="Fechar opções"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 sm:h-6 sm:w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
 
               {/* Seleção de Idioma */}
               <div className="mb-4 sm:mb-6">
-                <label className={`block text-base sm:text-lg font-semibold mb-1 sm:mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                <label
+                  className={`block text-base sm:text-lg font-semibold mb-1 sm:mb-2 ${
+                    darkMode ? "text-gray-300" : "text-gray-700"
+                  }`}
+                >
                   {translations[language].language}
                 </label>
                 <div className="flex space-x-2 sm:space-x-3">
@@ -1351,11 +1712,19 @@ function App() {
                       onClick={() => setLanguage(langKey)}
                       className={`px-3 py-1 sm:px-4 sm:py-2 rounded-md font-medium transition-colors duration-200 text-sm sm:text-base ${
                         language === langKey
-                          ? 'bg-indigo-600 text-white'
-                          : `${darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`
+                          ? "bg-indigo-600 text-white"
+                          : `${
+                              darkMode
+                                ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                            }`
                       }`}
                     >
-                      {langKey === 'en' ? 'English' : langKey === 'pt-BR' ? 'Português (BR)' : 'Français'}
+                      {langKey === "en"
+                        ? "English"
+                        : langKey === "pt-BR"
+                        ? "Português (BR)"
+                        : "Français"}
                     </button>
                   ))}
                 </div>
@@ -1378,10 +1747,17 @@ function App() {
 
               {/* Alternar Notificações Sonoras */}
               <div className="mb-4 sm:mb-6 flex items-center justify-between">
-                <label className={`block text-base sm:text-lg font-semibold ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                <label
+                  className={`block text-base sm:text-lg font-semibold ${
+                    darkMode ? "text-gray-300" : "text-gray-700"
+                  }`}
+                >
                   {translations[language].enableSoundNotifications}
                 </label>
-                <label htmlFor="soundToggle" className="relative inline-flex items-center cursor-pointer">
+                <label
+                  htmlFor="soundToggle"
+                  className="relative inline-flex items-center cursor-pointer"
+                >
                   <input
                     type="checkbox"
                     id="soundToggle"
@@ -1399,18 +1775,31 @@ function App() {
         )}
 
         {/* Formulário para adicionar tarefas */}
-        <form onSubmit={addTask} className={`mb-6 sm:mb-8 p-4 rounded-md ${darkMode ? 'border border-gray-700' : 'border border-gray-200'} transition-colors duration-300`}>
+        <form
+          onSubmit={addTask}
+          className={`mb-6 sm:mb-8 p-4 rounded-md ${
+            darkMode ? "border border-gray-700" : "border border-gray-200"
+          } transition-colors duration-300`}
+        >
           <div className="mb-4">
             <label
               htmlFor="taskName"
-              className={`block text-sm font-bold mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'} transition-colors duration-300`}
+              className={`block text-sm font-bold mb-2 ${
+                darkMode ? "text-gray-300" : "text-gray-700"
+              } transition-colors duration-300`}
             >
               {translations[language].taskName}
             </label>
             <input
               type="text"
               id="taskName"
-              className={`peer appearance-none border-b ${darkMode ? 'border-gray-600 text-gray-100' : 'border-gray-300 text-gray-700'} rounded-none w-full py-2 px-3 leading-tight focus:outline-none ${darkMode ? 'focus:border-indigo-400' : 'focus:border-indigo-500'} !bg-transparent !focus:bg-transparent transition-colors duration-300`}
+              className={`peer appearance-none border-b ${
+                darkMode
+                  ? "border-gray-600 text-gray-100"
+                  : "border-gray-300 text-gray-700"
+              } rounded-none w-full py-2 px-3 leading-tight focus:outline-none ${
+                darkMode ? "focus:border-indigo-400" : "focus:border-indigo-500"
+              } !bg-transparent !focus:bg-transparent transition-colors duration-300`}
               value={taskName}
               onChange={(e) => setTaskName(e.target.value)}
               placeholder=""
@@ -1421,7 +1810,11 @@ function App() {
 
           <div className="flex flex-col sm:flex-row items-center justify-between mb-4">
             <div className="flex-grow w-full sm:w-auto mb-4 sm:mb-0">
-              <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'} transition-colors duration-300`}>
+              <label
+                className={`block text-sm font-bold mb-2 ${
+                  darkMode ? "text-gray-300" : "text-gray-700"
+                } transition-colors duration-300`}
+              >
                 {translations[language].timeMode}
               </label>
               <div className="flex items-center space-x-4">
@@ -1431,10 +1824,16 @@ function App() {
                     className="form-radio text-indigo-600"
                     name="taskMode"
                     value="time"
-                    checked={taskMode === 'time'}
-                    onChange={() => setTaskMode('time')}
+                    checked={taskMode === "time"}
+                    onChange={() => setTaskMode("time")}
                   />
-                  <span className={`ml-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'} transition-colors duration-300`}>{translations[language].freeTime}</span>
+                  <span
+                    className={`ml-2 ${
+                      darkMode ? "text-gray-300" : "text-gray-700"
+                    } transition-colors duration-300`}
+                  >
+                    {translations[language].freeTime}
+                  </span>
                 </label>
                 <label className="inline-flex items-center">
                   <input
@@ -1442,10 +1841,16 @@ function App() {
                     className="form-radio text-indigo-600"
                     name="taskMode"
                     value="pomodoro"
-                    checked={taskMode === 'pomodoro'}
-                    onChange={() => setTaskMode('pomodoro')}
+                    checked={taskMode === "pomodoro"}
+                    onChange={() => setTaskMode("pomodoro")}
                   />
-                  <span className={`ml-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'} transition-colors duration-300`}>{translations[language].pomodoro}</span>
+                  <span
+                    className={`ml-2 ${
+                      darkMode ? "text-gray-300" : "text-gray-700"
+                    } transition-colors duration-300`}
+                  >
+                    {translations[language].pomodoro}
+                  </span>
                 </label>
               </div>
             </div>
@@ -1454,13 +1859,24 @@ function App() {
               className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center focus:outline-none focus:shadow-outline sm:ml-4"
               title={translations[language].addTask}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5 sm:h-6 sm:w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 4v16m8-8H4"
+                />
               </svg>
             </button>
           </div>
 
-          {taskMode === 'time' && (
+          {taskMode === "time" && (
             <div className="mb-4">
               <NumberInput
                 id="taskDuration"
@@ -1476,9 +1892,15 @@ function App() {
             </div>
           )}
 
-          {taskMode === 'pomodoro' && (
+          {taskMode === "pomodoro" && (
             <>
-              <h3 className={`text-lg sm:text-xl font-semibold mb-4 mt-6 ${darkMode ? 'text-gray-100' : 'text-gray-700'} transition-colors duration-300`}>{translations[language].pomodoroSettings}</h3>
+              <h3
+                className={`text-lg sm:text-xl font-semibold mb-4 mt-6 ${
+                  darkMode ? "text-gray-100" : "text-gray-700"
+                } transition-colors duration-300`}
+              >
+                {translations[language].pomodoroSettings}
+              </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 {/* Sessões de Foco */}
                 <NumberInput
@@ -1537,28 +1959,62 @@ function App() {
         </form>
 
         {/* Exibição do Cronômetro */}
-        <div className={`text-center mb-6 sm:mb-8 p-4 sm:p-6 rounded-lg relative flex flex-col ${darkMode ? 'border border-gray-700' : 'border border-gray-200'} transition-colors duration-300`}>
+        <div
+          className={`text-center mb-6 sm:mb-8 p-4 sm:p-6 rounded-lg relative flex flex-col ${
+            darkMode ? "border border-gray-700" : "border border-gray-200"
+          } transition-colors duration-300`}
+        >
           {/* Nome da Tarefa (canto superior esquerdo absoluto) */}
-          <div className={`absolute left-3 px-1 text-xs sm:text-sm font-bold z-10 top-0 -translate-y-1/2 ${darkMode ? 'bg-gray-800 text-gray-300' : 'bg-white text-gray-700'} transition-colors duration-300`}>
-            <h2 className={`text-base sm:text-xl font-semibold flex items-center ${darkMode ? 'text-gray-100' : 'text-gray-700'} transition-colors duration-300`}>
-              {currentTask && currentTask.mode === 'pomodoro' && <span className="mr-1 sm:mr-2 text-base sm:text-xl">🍅</span>}
-              {isIntervalRunning ? translations[language].interTaskInterval : (currentTask ? currentTask.name : translations[language].noTaskSelected)}
+          <div
+            className={`absolute left-3 px-1 text-xs sm:text-sm font-bold z-10 top-0 -translate-y-1/2 ${
+              darkMode ? "bg-gray-800 text-gray-300" : "bg-white text-gray-700"
+            } transition-colors duration-300`}
+          >
+            <h2
+              className={`text-base sm:text-xl font-semibold flex items-center ${
+                darkMode ? "text-gray-100" : "text-gray-700"
+              } transition-colors duration-300`}
+            >
+              {currentTask && currentTask.mode === "pomodoro" && (
+                <span className="mr-1 sm:mr-2 text-base sm:text-xl">🍅</span>
+              )}
+              {isIntervalRunning
+                ? translations[language].interTaskInterval
+                : currentTask
+                ? currentTask.name
+                : translations[language].noTaskSelected}
             </h2>
           </div>
 
           {/* Estado Pomodoro e Emoji (abaixo do título, alinhado à esquerda) */}
-          {(currentTask && currentTask.mode === 'pomodoro' || isIntervalRunning) && (
-            <div className={`absolute left-3 px-1 text-xs sm:text-sm font-bold z-10 top-8 sm:top-12 -translate-y-1/2 ${darkMode ? 'bg-gray-800 text-gray-300' : 'bg-white text-base sm:text-lg font-medium'} flex items-center ${darkMode ? 'text-indigo-300' : 'text-indigo-700'} transition-colors duration-300`}>
+          {((currentTask && currentTask.mode === "pomodoro") ||
+            isIntervalRunning) && (
+            <div
+              className={`absolute left-3 px-1 text-xs sm:text-sm font-bold z-10 top-8 sm:top-12 -translate-y-1/2 ${
+                darkMode
+                  ? "bg-gray-800 text-gray-300"
+                  : "bg-white text-base sm:text-lg font-medium"
+              } flex items-center ${
+                darkMode ? "text-indigo-300" : "text-indigo-700"
+              } transition-colors duration-300`}
+            >
               {getCurrentPhaseEmoji()}
               <span className="ml-1 sm:ml-2">
-                {
-                  isIntervalRunning ? translations[language].interTaskInterval :
-                  pomodoroState === 'focus' ? `${translations[language].focus} (${pomodoroCount + 1}/${currentTask.pomodoroFocusSessions})` :
-                  pomodoroState === 'shortBreak' ?
-                    (currentTask.pomodoroFocusSessions > 1 ? `${translations[language].shortBreak} (${pomodoroCount}/${currentTask.pomodoroFocusSessions - 1})` : translations[language].shortBreak) :
-                  pomodoroState === 'longBreak' ? translations[language].longBreak :
-                  translations[language].readyToStart
-                }
+                {isIntervalRunning
+                  ? translations[language].interTaskInterval
+                  : pomodoroState === "focus"
+                  ? `${translations[language].focus} (${pomodoroCount + 1}/${
+                      currentTask.pomodoroFocusSessions
+                    })`
+                  : pomodoroState === "shortBreak"
+                  ? currentTask.pomodoroFocusSessions > 1
+                    ? `${translations[language].shortBreak} (${pomodoroCount}/${
+                        currentTask.pomodoroFocusSessions - 1
+                      })`
+                    : translations[language].shortBreak
+                  : pomodoroState === "longBreak"
+                  ? translations[language].longBreak
+                  : translations[language].readyToStart}
               </span>
             </div>
           )}
@@ -1574,7 +2030,9 @@ function App() {
                   cy="50"
                   r="45"
                   fill="none"
-                  stroke={darkMode ? '#4a5568' : '#e0e0e0'} /* Cor do círculo de fundo */
+                  stroke={
+                    darkMode ? "#4a5568" : "#e0e0e0"
+                  } /* Cor do círculo de fundo */
                   strokeWidth="5"
                 />
                 {/* Círculo de progresso animado */}
@@ -1587,17 +2045,25 @@ function App() {
                   strokeWidth="5"
                   strokeLinecap="round"
                   transform="rotate(-90 50 50)" /* Inicia o traço no topo */
-                  style={{ transition: 'stroke-dashoffset 1s linear' }} /* Transição suave */
+                  style={{
+                    transition: "stroke-dashoffset 1s linear",
+                  }} /* Transição suave */
                   ref={progressCircleRef}
                 />
               </svg>
               {/* Exibição do tempo digital, centralizado sobre o SVG */}
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <div className={`text-4xl md:text-5xl font-extrabold transition-colors duration-300 leading-none`} style={{ color: textColor }}>
-                  {formatTime(displayTime).split(':')[0]}
+                <div
+                  className={`text-4xl md:text-5xl font-extrabold transition-colors duration-300 leading-none`}
+                  style={{ color: textColor }}
+                >
+                  {formatTime(displayTime).split(":")[0]}
                 </div>
-                <div className={`text-4xl md:text-5xl font-extrabold transition-colors duration-300 leading-none`} style={{ color: textColor }}>
-                  {formatTime(displayTime).split(':')[1]}
+                <div
+                  className={`text-4xl md:text-5xl font-extrabold transition-colors duration-300 leading-none`}
+                  style={{ color: textColor }}
+                >
+                  {formatTime(displayTime).split(":")[1]}
                 </div>
               </div>
             </div>
@@ -1605,54 +2071,127 @@ function App() {
             {/* Grade de Tempos (direita) */}
             <div className="grid grid-cols-2 gap-2 sm:gap-4 mt-4 md:mt-0">
               {/* Cartão de Tempo Decorrido */}
-              <div className={`p-2 sm:p-4 rounded-lg relative border ${darkMode ? 'border-gray-600' : 'border-gray-200'} transition-colors duration-300 w-full`}>
-                <label className={`absolute left-2 sm:left-3 px-1 text-xs font-bold z-10 top-0 -translate-y-1/2 ${darkMode ? 'bg-gray-800 text-gray-300' : 'bg-white text-gray-700'} transition-colors duration-300`}>
+              <div
+                className={`p-2 sm:p-4 rounded-lg relative border ${
+                  darkMode ? "border-gray-600" : "border-gray-200"
+                } transition-colors duration-300 w-full`}
+              >
+                <label
+                  className={`absolute left-2 sm:left-3 px-1 text-xs font-bold z-10 top-0 -translate-y-1/2 ${
+                    darkMode
+                      ? "bg-gray-800 text-gray-300"
+                      : "bg-white text-gray-700"
+                  } transition-colors duration-300`}
+                >
                   {translations[language].elapsed}
                 </label>
-                <span className={`block text-base sm:text-xl font-extrabold ${darkMode ? 'text-indigo-300' : 'text-indigo-800'} text-center pt-2 transition-colors duration-300`}>
+                <span
+                  className={`block text-base sm:text-xl font-extrabold ${
+                    darkMode ? "text-indigo-300" : "text-indigo-800"
+                  } text-center pt-2 transition-colors duration-300`}
+                >
                   {formatTotalTime(totalGlobalElapsedTime)}
                 </span>
               </div>
 
               {/* Cartão de Tempo Restante */}
-              <div className={`p-2 sm:p-4 rounded-lg relative border ${darkMode ? 'border-gray-600' : 'border-gray-200'} transition-colors duration-300 w-full`}>
-                <label className={`absolute left-2 sm:left-3 px-1 text-xs font-bold z-10 top-0 -translate-y-1/2 ${darkMode ? 'bg-gray-800 text-gray-300' : 'bg-white text-gray-700'} transition-colors duration-300`}>
+              <div
+                className={`p-2 sm:p-4 rounded-lg relative border ${
+                  darkMode ? "border-gray-600" : "border-gray-200"
+                } transition-colors duration-300 w-full`}
+              >
+                <label
+                  className={`absolute left-2 sm:left-3 px-1 text-xs font-bold z-10 top-0 -translate-y-1/2 ${
+                    darkMode
+                      ? "bg-gray-800 text-gray-300"
+                      : "bg-white text-gray-700"
+                  } transition-colors duration-300`}
+                >
                   {translations[language].remaining}
                 </label>
-                <span className={`block text-base sm:text-xl font-extrabold ${darkMode ? 'text-indigo-300' : 'text-indigo-800'} text-center pt-2 transition-colors duration-300`}>
-                  {formatTotalTime(totalRemainingTime > 0 ? totalRemainingTime : 0)}
+                <span
+                  className={`block text-base sm:text-xl font-extrabold ${
+                    darkMode ? "text-indigo-300" : "text-indigo-800"
+                  } text-center pt-2 transition-colors duration-300`}
+                >
+                  {formatTotalTime(
+                    totalRemainingTime > 0 ? totalRemainingTime : 0
+                  )}
                 </span>
               </div>
 
               {/* Cartão de Tempo Estimado */}
-              <div className={`p-2 sm:p-4 rounded-lg relative border ${darkMode ? 'border-gray-600' : 'border-gray-200'} transition-colors duration-300 w-full`}>
-                <label className={`absolute left-2 sm:left-3 px-1 text-xs font-bold z-10 top-0 -translate-y-1/2 ${darkMode ? 'bg-gray-800 text-gray-300' : 'bg-white text-gray-700'} transition-colors duration-300`}>
+              <div
+                className={`p-2 sm:p-4 rounded-lg relative border ${
+                  darkMode ? "border-gray-600" : "border-gray-200"
+                } transition-colors duration-300 w-full`}
+              >
+                <label
+                  className={`absolute left-2 sm:left-3 px-1 text-xs font-bold z-10 top-0 -translate-y-1/2 ${
+                    darkMode
+                      ? "bg-gray-800 text-gray-300"
+                      : "bg-white text-gray-700"
+                  } transition-colors duration-300`}
+                >
                   {translations[language].estimated}
                 </label>
-                <span className={`block text-base sm:text-xl font-extrabold ${darkMode ? 'text-indigo-300' : 'text-indigo-800'} text-center pt-2 transition-colors duration-300`}>
+                <span
+                  className={`block text-base sm:text-xl font-extrabold ${
+                    darkMode ? "text-indigo-300" : "text-indigo-800"
+                  } text-center pt-2 transition-colors duration-300`}
+                >
                   {formatTotalTime(totalEstimatedTime)}
                 </span>
               </div>
 
               {/* Cartão de Tempo Pulado */}
-              <div className={`p-2 sm:p-4 rounded-lg relative border ${darkMode ? 'border-gray-600' : 'border border-gray-200'} transition-colors duration-300 w-full`}>
-                <label className={`absolute left-2 sm:left-3 px-1 text-xs font-bold z-10 top-0 -translate-y-1/2 ${darkMode ? 'bg-gray-800 text-gray-300' : 'bg-white text-gray-700'} transition-colors duration-300`}>
+              <div
+                className={`p-2 sm:p-4 rounded-lg relative border ${
+                  darkMode ? "border-gray-600" : "border border-gray-200"
+                } transition-colors duration-300 w-full`}
+              >
+                <label
+                  className={`absolute left-2 sm:left-3 px-1 text-xs font-bold z-10 top-0 -translate-y-1/2 ${
+                    darkMode
+                      ? "bg-gray-800 text-gray-300"
+                      : "bg-white text-gray-700"
+                  } transition-colors duration-300`}
+                >
                   {translations[language].skipped}
                 </label>
-                <span className={`block text-base sm:text-xl font-extrabold ${darkMode ? 'text-indigo-300' : 'text-indigo-800'} text-center pt-2 transition-colors duration-300`}>
+                <span
+                  className={`block text-base sm:text-xl font-extrabold ${
+                    darkMode ? "text-indigo-300" : "text-indigo-800"
+                  } text-center pt-2 transition-colors duration-300`}
+                >
                   {formatTotalTime(skippedTime)}
                 </span>
               </div>
             </div>
           </div>
           {/* Texto de Tempo Estimado de Conclusão */}
-          <p className={`text-xs sm:text-sm mt-2 sm:mt-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'} transition-colors duration-300`}>
-            {translations[language].estimatedCompletionTime.replace('{time}', estimatedCompletionTime)}
+          <p
+            className={`text-xs sm:text-sm mt-2 sm:mt-4 ${
+              darkMode ? "text-gray-400" : "text-gray-500"
+            } transition-colors duration-300`}
+          >
+            {translations[language].estimatedCompletionTime.replace(
+              "{time}",
+              estimatedCompletionTime
+            )}
           </p>
           {/* Novo: Hora de Início da Tarefa */}
           {firstTaskStartTime && (
-            <p className={`text-xs sm:text-sm mt-1 sm:mt-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'} transition-colors duration-300`}>
-              {translations[language].taskStartTimeLabel}: {new Date(firstTaskStartTime).toLocaleTimeString(language, { hour: '2-digit', minute: '2-digit' })}
+            <p
+              className={`text-xs sm:text-sm mt-1 sm:mt-2 ${
+                darkMode ? "text-gray-400" : "text-gray-500"
+              } transition-colors duration-300`}
+            >
+              {translations[language].taskStartTimeLabel}:{" "}
+              {new Date(firstTaskStartTime).toLocaleTimeString(language, {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
             </p>
           )}
 
@@ -1665,69 +2204,136 @@ function App() {
                   try {
                     await Tone.start();
                     setIsAudioContextStarted(true);
-                    console.log('Contexto de áudio Tone.js iniciado.');
+                    console.log("Contexto de áudio Tone.js iniciado.");
                   } catch (error) {
-                    console.error('Falha ao iniciar o contexto de áudio Tone.js:', error);
-                    showNotification('Falha ao iniciar o áudio. Tente novamente.', 'error');
+                    console.error(
+                      "Falha ao iniciar o contexto de áudio Tone.js:",
+                      error
+                    );
+                    showNotification(
+                      "Falha ao iniciar o áudio. Tente novamente.",
+                      "error"
+                    );
                     return; // Impede a execução se o áudio falhar
                   }
                 }
 
-                if (timerRunning || isIntervalRunning) { // If either timer is running, pause
+                if (timerRunning || isIntervalRunning) {
+                  // If either timer is running, pause
                   pauseTimer();
                 } else {
                   let taskToHandle = null;
                   // Priority 1: Resume the currently selected task if it exists and is not completed
                   if (currentTaskId) {
-                      const existingCurrentTask = tasks.find(t => t.id === currentTaskId);
-                      if (existingCurrentTask && !existingCurrentTask.completed) {
-                          taskToHandle = existingCurrentTask;
-                      }
+                    const existingCurrentTask = tasks.find(
+                      (t) => t.id === currentTaskId
+                    );
+                    if (existingCurrentTask && !existingCurrentTask.completed) {
+                      taskToHandle = existingCurrentTask;
+                    }
                   }
 
                   // Priority 2: If no current task to resume, find the first uncompleted task in the list
                   if (!taskToHandle) {
-                      taskToHandle = findNextTaskInSequence(tasks, currentTaskId); // Use the new helper here
+                    taskToHandle = findNextTaskInSequence(tasks, currentTaskId); // Use the new helper here
                   }
 
                   if (taskToHandle) {
-                      // Determine if it's a resume or a new start
-                      const isResuming = (taskToHandle.id === currentTaskId && (timeLeft > 0 || intervalTimeLeft > 0));
-                      startTimerOrInterval(taskToHandle, isResuming);
-                  } else if (intervalTimeLeft > 0) { // If interval was paused, resume it
-                      startTimerOrInterval(null, true); // Pass null to indicate resuming interval
+                    // Determine if it's a resume or a new start
+                    const isResuming =
+                      taskToHandle.id === currentTaskId &&
+                      (timeLeft > 0 || intervalTimeLeft > 0);
+                    startTimerOrInterval(taskToHandle, isResuming);
+                  } else if (intervalTimeLeft > 0) {
+                    // If interval was paused, resume it
+                    startTimerOrInterval(null, true); // Pass null to indicate resuming interval
                   } else {
-                      console.log("Nenhuma tarefa para iniciar.");
+                    console.log("Nenhuma tarefa para iniciar.");
                   }
                 }
               }}
               className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-bold transition-all duration-200 ${
                 timerRunning || isIntervalRunning
-                  ? 'bg-red-500 hover:bg-red-600 text-white'
-                  : 'bg-green-500 hover:bg-green-600 text-white'
+                  ? "bg-red-500 hover:bg-red-600 text-white"
+                  : "bg-green-500 hover:bg-green-600 text-white"
               }`}
-              disabled={tasks.length === 0 && !currentTaskId && !isIntervalRunning && timeLeft === 0 && intervalTimeLeft === 0}
-              title={timerRunning || isIntervalRunning ? translations[language].pauseTimer : translations[language].startTimer}
+              disabled={
+                tasks.length === 0 &&
+                !currentTaskId &&
+                !isIntervalRunning &&
+                timeLeft === 0 &&
+                intervalTimeLeft === 0
+              }
+              title={
+                timerRunning || isIntervalRunning
+                  ? translations[language].pauseTimer
+                  : translations[language].startTimer
+              }
             >
               {timerRunning || isIntervalRunning ? (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 sm:h-6 sm:w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
               ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 sm:h-6 sm:w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
               )}
             </button>
             <button
               onClick={resetTimer} // Agora reseta apenas a tarefa atual
               className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold transition-all duration-200"
-              disabled={!currentTaskId && !isIntervalRunning && timeLeft === 0 && intervalTimeLeft === 0}
+              disabled={
+                !currentTaskId &&
+                !isIntervalRunning &&
+                timeLeft === 0 &&
+                intervalTimeLeft === 0
+              }
               title={translations[language].restartTask}
             >
               {/* Ícone de reset (seta circular de atualização) */}
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-rotate-ccw"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.76 2.75L3 8"/><path d="M3 3v5h5"/></svg>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="lucide lucide-rotate-ccw"
+              >
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.76 2.75L3 8" />
+                <path d="M3 3v5h5" />
+              </svg>
             </button>
             <button
               onClick={skipCurrentPhase}
@@ -1735,8 +2341,19 @@ function App() {
               disabled={!currentTaskId && !isIntervalRunning} // Desabilita se nenhuma tarefa ou intervalo estiver ativo
               title={translations[language].skipCurrentPhase}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5 sm:h-6 sm:w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M13 5l7 7-7 7M5 5l7 7-7 7"
+                />
               </svg>
             </button>
             <button
@@ -1744,8 +2361,19 @@ function App() {
               className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center bg-red-600 hover:bg-red-700 text-white font-bold transition-all duration-200"
               title={translations[language].resetAll}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5 sm:h-6 sm:w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
             </button>
           </div>
@@ -1753,9 +2381,21 @@ function App() {
 
         {/* Lista de Tarefas */}
         <div>
-          <h2 className={`text-xl sm:text-2xl font-bold mb-4 ${darkMode ? 'text-gray-100' : 'text-gray-800'} transition-colors duration-300`}>{translations[language].tasks}</h2>
+          <h2
+            className={`text-xl sm:text-2xl font-bold mb-4 ${
+              darkMode ? "text-gray-100" : "text-gray-800"
+            } transition-colors duration-300`}
+          >
+            {translations[language].tasks}
+          </h2>
           {tasks.length === 0 ? (
-            <p className={`text-center text-sm sm:text-base ${darkMode ? 'text-gray-400' : 'text-gray-500'} transition-colors duration-300`}>{translations[language].noTasksAdded}</p>
+            <p
+              className={`text-center text-sm sm:text-base ${
+                darkMode ? "text-gray-400" : "text-gray-500"
+              } transition-colors duration-300`}
+            >
+              {translations[language].noTasksAdded}
+            </p>
           ) : (
             <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
               {tasks.map((task, index) => (
@@ -1769,12 +2409,26 @@ function App() {
                   onDragLeave={handleDragLeave}
                   onDragEnd={handleDragEnd}
                   className={`flex flex-col p-3 sm:p-4 rounded-lg shadow-md transition-all duration-200 ${
-                    currentTaskId === task.id ? 'border-2 border-indigo-500' : `${darkMode ? 'border border-gray-700' : 'border border-gray-200'}`
+                    currentTaskId === task.id
+                      ? "border-2 border-indigo-500"
+                      : `${
+                          darkMode
+                            ? "border border-gray-700"
+                            : "border border-gray-200"
+                        }`
                   } bg-transparent cursor-grab relative`}
                 >
                   <div className="flex items-center justify-between mb-1 sm:mb-2">
-                    <span className={`font-semibold text-base sm:text-lg flex items-center ${darkMode ? 'text-gray-100' : 'text-gray-800'} transition-colors duration-300`}>
-                      {task.mode === 'pomodoro' && <span className="mr-1 sm:mr-2 text-base sm:text-xl">🍅</span>}
+                    <span
+                      className={`font-semibold text-base sm:text-lg flex items-center ${
+                        darkMode ? "text-gray-100" : "text-gray-800"
+                      } transition-colors duration-300`}
+                    >
+                      {task.mode === "pomodoro" && (
+                        <span className="mr-1 sm:mr-2 text-base sm:text-xl">
+                          🍅
+                        </span>
+                      )}
                       {task.name}
                     </span>
                     {/* Botões de ação no canto superior direito */}
@@ -1782,29 +2436,72 @@ function App() {
                       {!task.completed && (
                         <button
                           onClick={() => {
-                            if (currentTaskId === task.id && (timerRunning || isIntervalRunning)) {
+                            if (
+                              currentTaskId === task.id &&
+                              (timerRunning || isIntervalRunning)
+                            ) {
                               pauseTimer();
                             } else {
-                              const isResuming = (task.id === currentTaskId && (timeLeft > 0 || intervalTimeLeft > 0));
+                              const isResuming =
+                                task.id === currentTaskId &&
+                                (timeLeft > 0 || intervalTimeLeft > 0);
                               startTimerOrInterval(task, isResuming);
                             }
                           }}
                           className={`p-0.5 sm:p-1 rounded-full text-white transition-all duration-200 ${
-                            currentTaskId === task.id && (timerRunning || isIntervalRunning)
-                              ? 'bg-red-500 hover:bg-red-600'
-                              : 'bg-green-500 hover:bg-green-600'
+                            currentTaskId === task.id &&
+                            (timerRunning || isIntervalRunning)
+                              ? "bg-red-500 hover:bg-red-600"
+                              : "bg-green-500 hover:bg-green-600"
                           }`}
-                          disabled={task.completed || ((timerRunning || isIntervalRunning) && currentTaskId !== null && currentTaskId !== task.id)}
-                          title={currentTaskId === task.id && (timerRunning || isIntervalRunning) ? translations[language].pauseTimer : translations[language].startTimer}
+                          disabled={
+                            task.completed ||
+                            ((timerRunning || isIntervalRunning) &&
+                              currentTaskId !== null &&
+                              currentTaskId !== task.id)
+                          }
+                          title={
+                            currentTaskId === task.id &&
+                            (timerRunning || isIntervalRunning)
+                              ? translations[language].pauseTimer
+                              : translations[language].startTimer
+                          }
                         >
-                          {currentTaskId === task.id && (timerRunning || isIntervalRunning) ? (
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          {currentTaskId === task.id &&
+                          (timerRunning || isIntervalRunning) ? (
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-4 w-4 sm:h-5 sm:w-5"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
                             </svg>
                           ) : (
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-4 w-4 sm:h-5 sm:w-5"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                              />
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
                             </svg>
                           )}
                         </button>
@@ -1814,25 +2511,44 @@ function App() {
                         className="p-0.5 sm:p-1 rounded-full text-red-500 hover:text-red-700 transition-all duration-200"
                         title="Deletar Tarefa"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4 sm:h-5 sm:w-5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M6 18L18 6M6 6l12 12"
+                          />
                         </svg>
                       </button>
                     </div>
                   </div>
 
-                  {task.mode === 'time' && (
-                    <div className={`flex flex-wrap gap-x-2 sm:gap-x-4 gap-y-1 sm:gap-y-2 text-xs sm:text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'} mt-1 sm:mt-2 transition-colors duration-300`}>
+                  {task.mode === "time" && (
+                    <div
+                      className={`flex flex-wrap gap-x-2 sm:gap-x-4 gap-y-1 sm:gap-y-2 text-xs sm:text-sm ${
+                        darkMode ? "text-gray-300" : "text-gray-700"
+                      } mt-1 sm:mt-2 transition-colors duration-300`}
+                    >
                       <span className="flex items-center space-x-1">
                         ⏱️ {task.duration / 60} min
                       </span>
                     </div>
                   )}
 
-                  {task.mode === 'pomodoro' && (
-                    <div className={`grid grid-cols-2 gap-x-2 sm:gap-x-4 gap-y-1 sm:gap-y-2 text-xs sm:text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'} mt-1 sm:mt-2 transition-colors duration-300`}>
+                  {task.mode === "pomodoro" && (
+                    <div
+                      className={`grid grid-cols-2 gap-x-2 sm:gap-x-4 gap-y-1 sm:gap-y-2 text-xs sm:text-sm ${
+                        darkMode ? "text-gray-300" : "text-gray-700"
+                      } mt-1 sm:mt-2 transition-colors duration-300`}
+                    >
                       <span className="flex items-center space-x-1">
-                        � {task.pomodoroFocusSessions}
+                        🎯 {task.pomodoroFocusSessions}
                       </span>
                       <span className="flex items-center space-x-1">
                         ⏱️ {task.pomodoroFocusDuration / 60} min
@@ -1848,18 +2564,43 @@ function App() {
 
                   {/* Ícone de verificação de conclusão (canto inferior direito) */}
                   {task.completed && (
-                    <div className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 p-0.5 sm:p-1 rounded-full shadow-md"
-                    style={{ backgroundColor: task.skipped ? '#F59E0B' : '#22C55E' }} // Yellow for skipped, green for completed
+                    <div
+                      className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 p-0.5 sm:p-1 rounded-full shadow-md"
+                      style={{
+                        backgroundColor: task.skipped ? "#F59E0B" : "#22C55E",
+                      }} // Yellow for skipped, green for completed
                     >
                       {task.skipped ? (
                         // Render skip icon (double chevron)
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-4 sm:w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-3 w-3 sm:h-4 sm:w-4 text-white"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth="3"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M13 5l7 7-7 7M5 5l7 7-7 7"
+                          />
                         </svg>
                       ) : (
                         // Render checkmark icon
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-4 sm:w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-3 w-3 sm:h-4 sm:w-4 text-white"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth="3"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M5 13l4 4L19 7"
+                          />
                         </svg>
                       )}
                     </div>
@@ -1870,10 +2611,14 @@ function App() {
           )}
         </div>
       </div>
-      <Notification message={notification.message} type={notification.type} onClose={clearNotification} darkMode={darkMode} />
+      <Notification
+        message={notification.message}
+        type={notification.type}
+        onClose={clearNotification}
+        darkMode={darkMode}
+      />
     </div>
   );
 }
 
 export default App;
-�
